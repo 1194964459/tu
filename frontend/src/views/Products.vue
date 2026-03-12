@@ -4,7 +4,22 @@
       <h1>产品库</h1>
       <p>发现最适合您的产品解决方案</p>
     </div>
-
+      
+    <div class="stats-section">
+      <div class="stat-item">
+        <div class="stat-value">{{stats.totalProducts}}+</div>
+        <div class="stat-label">产品数量</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">{{ stats.totalTrials }}+</div>
+        <div class="stat-label">试用次数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">{{ stats.satisfaction }}%</div>
+        <div class="stat-label">用户满意度</div>
+      </div>
+    </div>
+         
     <!-- 分类筛选 -->
     <div class="filters">
       <button class="filter-btn" :class="{ active: !selectedCategory }" @click="setCategory('')">全部</button>
@@ -41,6 +56,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { productAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
+
+const stats = ref({ totalProducts: 6, totalTrials: 150, satisfaction: 92 })
 
 const products = ref([])
 const categories = ref([])
@@ -131,6 +148,11 @@ function startTrial(product) {
 .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 
 .empty-state { text-align: center; padding: 60px; color: #999; }
+
+
+.stats-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #fff; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 40px; }
+.stat-value { font-size: 36px; font-weight: 700; color: #667eea; }
+.stat-label { color: #666; margin-top: 8px; }
 
 @media (max-width: 1100px) {
   .product-grid { grid-template-columns: repeat(2, 1fr); }

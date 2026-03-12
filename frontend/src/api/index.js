@@ -34,4 +34,9 @@ export const feedbackAPI = {
   update: (id, data) => api.put(`/feedback/${id}`, data)
 }
 
+export const adminAPI = {
+  trialRequests: () => api.get('/admin/trial-requests'),
+  trialRequestDetail: (trialId) => api.get(`/admin/trial-requests/${trialId}`)
+}
+
 export default api

@@ -11,6 +11,7 @@
           <router-link to="/products" class="nav-link" :class="{ active: $route.path.startsWith('/products') }">产品库</router-link>
           <router-link to="/ai-chat" class="nav-link" :class="{ active: $route.path === '/ai-chat' }">AI 顾问</router-link>
           <router-link to="/trial" class="nav-link trial-link" :class="{ active: $route.path === '/trial' }">试用工作台</router-link>
+          <router-link to="/admin" class="nav-link admin-link" :class="{ active: $route.path === '/admin' }">管理后台</router-link>
         </nav>
         <div class="user-info">
           <span class="role-badge">{{ currentRole }}</span>
@@ -43,6 +44,8 @@ const currentRole = ref('购买方')
 .nav-link.active { background: #e8f4ff; color: #0066ff; }
 .trial-link { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff !important; }
 .trial-link:hover { opacity: 0.9; }
+.admin-link { background: #fff7e6; color: #fa8c16 !important; border: 1px solid #ffe7ba; }
+.admin-link:hover { background: #fff1d6; }
 .role-badge { padding: 4px 12px; background: #f0f0f0; border-radius: 12px; font-size: 12px; color: #666; }
 .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
 </style>

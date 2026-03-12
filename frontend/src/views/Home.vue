@@ -83,7 +83,7 @@
             </div>
           </template>
 
-          <template v-else-if="block.type === 'stats'">
+          <!-- <template v-else-if="block.type === 'stats'">
             <div class="stats-section">
               <div class="stat-item">
                 <div class="stat-value">{{ stats.totalProducts }}+</div>
@@ -98,7 +98,7 @@
                 <div class="stat-label">用户满意度</div>
               </div>
             </div>
-          </template>
+          </template> -->
         </section>
       </div>
     </div>
