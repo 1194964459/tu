@@ -63,8 +63,8 @@
               <div class="secondary">{{ row.productVersion || '-' }}</div>
             </div>
             <div class="td w-status">
-              <span class="status" :class="String(row.trialStatus || '').toLowerCase()">
-                {{ row.trialStatus || '-' }}
+            <span class="status" :class="trialStatusClass(row.trialStatus)">
+              {{ formatTrialStatus(row.trialStatus) }}
               </span>
             </div>
             <div class="td w-time">{{ formatDateTime(row.createTime) }}</div>
@@ -128,7 +128,9 @@
               <span v-else>-</span>
             </div>
             <div class="td">
-              <span class="status pending">{{ p.status || 'DRAFT' }}</span>
+              <span class="status" :class="productStatusClass(p.status)">
+                {{ formatProductStatus(p.status) }}
+              </span>
             </div>
             <div class="td op">
               <button class="btn-view" type="button" @click="openProductDetail(p)">查看</button>
@@ -164,7 +166,9 @@
               <div class="secondary clamp">{{ p.cases || '-' }}</div>
             </div>
             <div class="td">
-              <span class="status">{{ p.status || '-' }}</span>
+              <span class="status" :class="productStatusClass(p.status)">
+                {{ formatProductStatus(p.status) }}
+              </span>
             </div>
             <div class="td op">
               <button class="btn-view" type="button" @click="openProductDetail(p)">查看</button>
@@ -222,7 +226,7 @@
             </div>
             <div class="detail-item">
               <div class="label">试用状态</div>
-              <div class="value">{{ detail.trial?.status || '-' }}</div>
+              <div class="value">{{ formatTrialStatus(detail.trial?.status) }}</div>
             </div>
             <div class="detail-item">
               <div class="label">环境地址</div>
@@ -756,6 +760,39 @@ function buildProductSearchText(p) {
   ].filter(Boolean)
   return parts.join(' ').toLowerCase()
 }
+
+function formatTrialStatus(status) {
+  const s = String(status || '').toUpperCase()
+  if (!s) return '-'
+  const map = {
+    PENDING: '待开始',
+    RUNNING: '进行中',
+    COMPLETED: '已完成',
+    EXPIRED: '已过期'
+  }
+  return map[s] || s
+}
+
+function trialStatusClass(status) {
+  const s = String(status || '').toLowerCase()
+  return s || ''
+}
+
+function formatProductStatus(status) {
+  const s = String(status || '').toUpperCase()
+  if (!s) return '-'
+  const map = {
+    DRAFT: '待审核',
+    ACTIVE: '已上架',
+    OFFLINE: '已下架'
+  }
+  return map[s] || s
+}
+
+function productStatusClass(status) {
+  const s = String(status || '').toLowerCase()
+  return s || ''
+}
 </script>
 
 <style scoped>
@@ -799,6 +836,9 @@ function buildProductSearchText(p) {
 .status.completed { background: #e3f2fd; border-color: #bbdefb; color: #1565c0; }
 .status.pending { background: #fff3e0; border-color: #ffe0b2; color: #ef6c00; }
 .status.expired { background: #ffebee; border-color: #ffcdd2; color: #c62828; }
+.status.active { background: #e8f5e9; border-color: #c8e6c9; color: #2e7d32; }
+.status.draft { background: #fff3e0; border-color: #ffe0b2; color: #ef6c00; }
+.status.offline { background: #ffebee; border-color: #ffcdd2; color: #c62828; }
 
 .btn-view { padding: 8px 12px; border: 1px solid #0066ff; background: #fff; color: #0066ff; border-radius: 8px; cursor: pointer; font-size: 13px; }
 .btn-view:hover { background: #0066ff; color: #fff; }

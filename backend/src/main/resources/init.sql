@@ -184,7 +184,7 @@ SELECT
   '关务申报、舱单管理、费用结算、在途可视化', '跨境物流、国际货代、海运空运', 299.00, 'SaaS', '生态伙伴A',
   'BENCHMARK', 'WiseTech Global', 'https://example.com/wise-tech', 'https://demo.example.com/external/cargowise',
   '某跨境电商,某货代集团', '跨境业务一体化上线（Mock）', 3,
-  70, 'ACTIVE', NOW(), NOW()
+  98, 'ACTIVE', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'CargoWise One（Mock）');
 
 INSERT INTO products (
@@ -197,7 +197,7 @@ SELECT
   '波次拣选、库位优化、自动补货、设备对接', '电商仓储、制造仓库、冷链仓储', 260.00, 'Cloud', '生态伙伴B',
   'BENCHMARK', 'Blue Yonder', 'https://example.com/blue-yonder', 'https://demo.example.com/external/by-wms',
   '某头部零售,某3PL', '多仓统一WMS（Mock）', 3,
-  66, 'ACTIVE', NOW(), NOW()
+  89, 'ACTIVE', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM products WHERE name = 'Blue Yonder WMS（Mock）');
 
 INSERT INTO products (
