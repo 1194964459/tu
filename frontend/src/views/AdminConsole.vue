@@ -29,6 +29,52 @@
           @change="onTrialTableChange"
         >
           <template #emptyText>暂无数据</template>
+          <template #bodyCell="{ column, record, text }">
+            <template v-if="column.key === 'user'">
+              <div>
+                <div class="primary">{{ record.userName || record.userUsername || '-' }}</div>
+                <div class="secondary">{{ record.userIndustry || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'product'">
+              <div>
+                <div class="primary">{{ record.productName || '-' }}</div>
+                <div class="secondary">ID: {{ record.productId ?? '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'solution'">
+              <div>
+                <div class="primary">{{ record.solutionName || '-' }}</div>
+                <div class="secondary">ID: {{ record.solutionId ?? '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'meta'">
+              <div>
+                <div class="primary clamp">{{ record.productCapability || '-' }}</div>
+                <div class="secondary clamp">{{ record.productScenarios || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'price'">
+              <div>
+                <div class="primary">{{ record.productPrice != null ? `${record.productPrice}` : '-' }}</div>
+                <div class="secondary">{{ record.productVersion || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="trialStatusTagColor(record.trialStatus)">
+                {{ formatTrialStatus(record.trialStatus) }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.key === 'time'">
+              {{ formatDateTime(record.createTime) }}
+            </template>
+            <template v-else-if="column.key === 'op'">
+              <a-button size="small" type="link" @click="openDetail(record.trialId)">查看</a-button>
+            </template>
+            <template v-else>
+              {{ text }}
+            </template>
+          </template>
         </a-table>
       </div>
     </div>
@@ -57,6 +103,51 @@
           :pagination="false"
         >
           <template #emptyText>暂无待审核产品</template>
+          <template #bodyCell="{ column, record, text }">
+            <template v-if="column.key === 'product'">
+              <div>
+                <div class="primary">{{ record.name || '-' }}</div>
+                <div class="secondary">{{ record.category || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'provider'">
+              <div>
+                <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
+                <div class="secondary clamp">{{ record.sourceUrl || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'meta'">
+              <div>
+                <div class="primary clamp">{{ record.capability || '-' }}</div>
+                <div class="secondary clamp">{{ record.scenarios || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'price'">
+              <div>
+                <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
+                <div class="secondary">{{ record.version || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'external'">
+              <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
+              <span v-else>-</span>
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="productStatusTagColor(record.status)">
+                {{ formatProductStatus(record.status) }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.key === 'op'">
+              <a-space :size="8">
+                <a-button size="small" type="link" @click="openProductDetail(record)">查看</a-button>
+                <a-button size="small" type="primary" @click="approve(record)">上架</a-button>
+                <a-button size="small" danger @click="offline(record)">下架</a-button>
+              </a-space>
+            </template>
+            <template v-else>
+              {{ text }}
+            </template>
+          </template>
         </a-table>
       </div>
 
@@ -71,6 +162,38 @@
           :pagination="false"
         >
           <template #emptyText>暂无提交记录</template>
+          <template #bodyCell="{ column, record, text }">
+            <template v-if="column.key === 'product'">
+              <div>
+                <div class="primary">{{ record.name || '-' }}</div>
+                <div class="secondary">{{ record.category || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'external'">
+              <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
+              <span v-else>-</span>
+            </template>
+            <template v-else-if="column.key === 'cases'">
+              <div>
+                <div class="primary clamp">{{ record.customers || '-' }}</div>
+                <div class="secondary clamp">{{ record.cases || '-' }}</div>
+              </div>
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="productStatusTagColor(record.status)">
+                {{ formatProductStatus(record.status) }}
+              </a-tag>
+            </template>
+            <template v-else-if="column.key === 'op'">
+              <a-space :size="8">
+                <a-button size="small" type="link" @click="openProductDetail(record)">查看</a-button>
+                <a-button size="small" type="link" @click="openEdit(record)">编辑</a-button>
+              </a-space>
+            </template>
+            <template v-else>
+              {{ text }}
+            </template>
+          </template>
         </a-table>
       </div>
     </div>
@@ -231,90 +354,97 @@
       </div>
     </div>
 
-    <div v-if="submitVisible" class="modal-overlay" @click="closeSubmit">
-      <div class="modal small" @click.stop>
-        <div class="modal-header">
-          <h3>{{ submitMode === 'create' ? '提交生态产品' : '编辑生态产品' }}</h3>
-          <button class="close-btn" type="button" @click="closeSubmit">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label>产品名称</label>
-              <input v-model="submitForm.name" class="input" type="text" placeholder="请输入产品名称" />
-            </div>
-            <div class="form-group">
-              <label>分类</label>
-              <input v-model="submitForm.category" class="input" type="text" placeholder="如：运输管理/数据分析" />
-            </div>
-          </div>
+    <a-modal
+      v-model:open="submitVisible"
+      :title="submitMode === 'create' ? '提交生态产品' : '编辑生态产品'"
+      :width="600"
+      ok-text="确定"
+      cancel-text="取消"
+      :confirm-loading="submitLoading"
+      :ok-button-props="{ disabled: !submitForm.name }"
+      @ok="submit"
+      @cancel="closeSubmit"
+    >
+      <a-form layout="vertical" :model="submitForm">
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="产品名称" name="name">
+              <a-input v-model:value="submitForm.name" placeholder="请输入产品名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="分类" name="category">
+              <a-input v-model:value="submitForm.category" placeholder="如：运输管理/数据分析" />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>供应商名称</label>
-              <input v-model="submitForm.providerName" class="input" type="text" placeholder="对外展示的供应商名称" />
-            </div>
-            <div class="form-group">
-              <label>供应商官网（可选）</label>
-              <input v-model="submitForm.sourceUrl" class="input" type="text" placeholder="https://..." />
-            </div>
-          </div>
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="供应商名称" name="providerName">
+              <a-input v-model:value="submitForm.providerName" placeholder="对外展示的供应商名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="供应商官网（可选）" name="sourceUrl">
+              <a-input v-model:value="submitForm.sourceUrl" placeholder="https://..." />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-          <div class="form-group">
-            <label>外部体验链接（方式A）</label>
-            <input v-model="submitForm.externalDemoUrl" class="input" type="text" placeholder="https://..." />
-          </div>
+        <a-form-item label="外部体验链接（方式A）" name="externalDemoUrl">
+          <a-input v-model:value="submitForm.externalDemoUrl" placeholder="https://..." />
+        </a-form-item>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>能力点</label>
-              <textarea v-model="submitForm.capability" class="textarea" rows="3" placeholder="用逗号分隔，如：路线优化,车辆调度..."></textarea>
-            </div>
-            <div class="form-group">
-              <label>场景</label>
-              <textarea v-model="submitForm.scenarios" class="textarea" rows="3" placeholder="用逗号分隔，如：干线运输,同城配送..."></textarea>
-            </div>
-          </div>
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="能力点" name="capability">
+              <a-textarea v-model:value="submitForm.capability" :rows="3" placeholder="用逗号分隔，如：路线优化,车辆调度..." />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="场景" name="scenarios">
+              <a-textarea v-model:value="submitForm.scenarios" :rows="3" placeholder="用逗号分隔，如：干线运输,同城配送..." />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>案例</label>
-              <textarea v-model="submitForm.cases" class="textarea" rows="3" placeholder="可填写典型案例"></textarea>
-            </div>
-            <div class="form-group">
-              <label>客户</label>
-              <textarea v-model="submitForm.customers" class="textarea" rows="3" placeholder="可填写典型客户"></textarea>
-            </div>
-          </div>
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="案例" name="cases">
+              <a-textarea v-model:value="submitForm.cases" :rows="3" placeholder="可填写典型案例" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="客户" name="customers">
+              <a-textarea v-model:value="submitForm.customers" :rows="3" placeholder="可填写典型客户" />
+            </a-form-item>
+          </a-col>
+        </a-row>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>价格（万）</label>
-              <input v-model="submitForm.price" class="input" type="number" min="0" step="0.01" />
-            </div>
-            <div class="form-group">
-              <label>版本</label>
-              <input v-model="submitForm.version" class="input" type="text" placeholder="如：v1.0" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label>简介</label>
-            <textarea v-model="submitForm.description" class="textarea" rows="3" placeholder="产品简介"></textarea>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-cancel" type="button" @click="closeSubmit">取消</button>
-          <button class="btn-confirm" type="button" :disabled="submitLoading || !submitForm.name" @click="submit">
-            {{ submitLoading ? '提交中...' : '确定' }}
-          </button>
-        </div>
-      </div>
-    </div>
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="价格（万）" name="price">
+              <a-input-number v-model:value="submitForm.price" :min="0" :step="0.01" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="版本" name="version">
+              <a-input v-model:value="submitForm.version" placeholder="如：v1.0" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-form-item label="简介" name="description">
+          <a-textarea v-model:value="submitForm.description" :rows="3" placeholder="产品简介" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { computed, h, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { adminAPI, partnerAPI } from '../api'
 
 const activeTab = ref('trials')
@@ -388,93 +518,46 @@ const trialColumns = [
     title: '用户',
     key: 'user',
     width: 200,
-    fixed: 'left',
-    customRender: ({ record }) => {
-      const primaryText = record.userName || record.userUsername || '-'
-      const secondaryText = record.userIndustry || '-'
-      return h('div', [
-        h('div', { class: 'primary' }, primaryText),
-        h('div', { class: 'secondary' }, secondaryText)
-      ])
-    }
+    fixed: 'left'
   },
   {
     title: '产品',
     key: 'product',
-    width: 220,
-    customRender: ({ record }) => {
-      return h('div', [
-        h('div', { class: 'primary' }, record.productName || '-'),
-        h('div', { class: 'secondary' }, `ID: ${record.productId ?? '-'}`)
-      ])
-    }
+    width: 220
   },
   {
     title: '方案',
     key: 'solution',
-    width: 220,
-    customRender: ({ record }) => {
-      return h('div', [
-        h('div', { class: 'primary' }, record.solutionName || '-'),
-        h('div', { class: 'secondary' }, `ID: ${record.solutionId ?? '-'}`)
-      ])
-    }
+    width: 220
   },
   {
     title: '能力/场景',
     key: 'meta',
     width: 260,
-    ellipsis: true,
-    customRender: ({ record }) => {
-      return h('div', [
-        h('div', { class: 'primary clamp' }, record.productCapability || '-'),
-        h('div', { class: 'secondary clamp' }, record.productScenarios || '-')
-      ])
-    }
+    ellipsis: true
   },
   {
     title: '价格/版本',
     key: 'price',
-    width: 140,
-    customRender: ({ record }) => {
-      return h('div', [
-        h('div', { class: 'primary' }, record.productPrice != null ? `${record.productPrice}` : '-'),
-        h('div', { class: 'secondary' }, record.productVersion || '-')
-      ])
-    }
+    width: 140
   },
   {
     title: '状态',
     dataIndex: 'trialStatus',
     key: 'status',
-    width: 120,
-    customRender: ({ record }) => {
-      return h(
-        'a-tag',
-        { color: trialStatusTagColor(record.trialStatus) },
-        { default: () => formatTrialStatus(record.trialStatus) }
-      )
-    }
+    width: 120
   },
   {
     title: '创建时间',
     dataIndex: 'createTime',
     key: 'time',
-    width: 180,
-    customRender: ({ record }) => formatDateTime(record.createTime)
+    width: 180
   },
   {
     title: '操作',
     key: 'op',
     width: 100,
-    fixed: 'right',
-    customRender: ({ record }) => {
-      return h(
-        'a-button',
-        { size: 'small', type: 'link', onClick: () => openDetail(record.trialId) },
-        { default: () => '查看' }
-      )
-    }
+    fixed: 'right'
   }
 ]
 
@@ -483,98 +566,39 @@ const ecoPendingColumns = [
     title: '产品',
     key: 'product',
     width: 220,
-    fixed: 'left',
-    customRender: ({ record }) =>
-      h('div', [
-        h('div', { class: 'primary' }, record.name || '-'),
-        h('div', { class: 'secondary' }, record.category || '-')
-      ])
+    fixed: 'left'
   },
   {
     title: '供应商',
     key: 'provider',
-    width: 220,
-    customRender: ({ record }) =>
-      h('div', [
-        h('div', { class: 'primary' }, record.providerName || record.sourceName || '-'),
-        h('div', { class: 'secondary clamp' }, record.sourceUrl || '-')
-      ])
+    width: 220
   },
   {
     title: '能力/场景',
     key: 'meta',
-    width: 260,
-    customRender: ({ record }) =>
-      h('div', [
-        h('div', { class: 'primary clamp' }, record.capability || '-'),
-        h('div', { class: 'secondary clamp' }, record.scenarios || '-')
-      ])
+    width: 260
   },
   {
     title: '价格/版本',
     key: 'price',
-    width: 140,
-    customRender: ({ record }) =>
-      h('div', [
-        h('div', { class: 'primary' }, record.price != null ? `${record.price}` : '-'),
-        h('div', { class: 'secondary' }, record.version || '-')
-      ])
+    width: 140
   },
   {
     title: '外部体验',
     key: 'external',
-    width: 120,
-    customRender: ({ record }) => {
-      if (!record.externalDemoUrl) return '-'
-      return h(
-        'a',
-        { class: 'link', href: record.externalDemoUrl, target: '_blank', rel: 'noopener noreferrer' },
-        '打开'
-      )
-    }
+    width: 120
   },
   {
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: 120,
-    customRender: ({ record }) => {
-      return h(
-        'a-tag',
-        { color: productStatusTagColor(record.status) },
-        { default: () => formatProductStatus(record.status) }
-      )
-    }
+    width: 120
   },
   {
     title: '操作',
     key: 'op',
     width: 160,
-    fixed: 'right',
-    customRender: ({ record }) =>
-      h(
-        'a-space',
-        { size: 8 },
-        {
-          default: () => [
-            h(
-              'a-button',
-              { size: 'small', type: 'link', onClick: () => openProductDetail(record) },
-              { default: () => '查看' }
-            ),
-            h(
-              'a-button',
-              { size: 'small', type: 'primary', onClick: () => approve(record) },
-              { default: () => '上架' }
-            ),
-            h(
-              'a-button',
-              { size: 'small', danger: true, onClick: () => offline(record) },
-              { default: () => '下架' }
-            )
-          ]
-        }
-      )
+    fixed: 'right'
   }
 ]
 
@@ -583,72 +607,29 @@ const ecoMineColumns = [
     title: '产品',
     key: 'product',
     width: 220,
-    fixed: 'left',
-    customRender: ({ record }) =>
-      h('div', [
-        h('div', { class: 'primary' }, record.name || '-'),
-        h('div', { class: 'secondary' }, record.category || '-')
-      ])
+    fixed: 'left'
   },
   {
     title: '外部体验',
     key: 'external',
-    width: 120,
-    customRender: ({ record }) => {
-      if (!record.externalDemoUrl) return '-'
-      return h(
-        'a',
-        { class: 'link', href: record.externalDemoUrl, target: '_blank', rel: 'noopener noreferrer' },
-        '打开'
-      )
-    }
+    width: 120
   },
   {
     title: '客户/案例',
     key: 'cases',
-    width: 260,
-    customRender: ({ record }) =>
-      h('div', [
-        h('div', { class: 'primary clamp' }, record.customers || '-'),
-        h('div', { class: 'secondary clamp' }, record.cases || '-')
-      ])
+    width: 260
   },
   {
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: 120,
-    customRender: ({ record }) =>
-      h(
-        'a-tag',
-        { color: productStatusTagColor(record.status) },
-        { default: () => formatProductStatus(record.status) }
-      )
+    width: 120
   },
   {
     title: '操作',
     key: 'op',
     width: 140,
-    fixed: 'right',
-    customRender: ({ record }) =>
-      h(
-        'a-space',
-        { size: 8 },
-        {
-          default: () => [
-            h(
-              'a-button',
-              { size: 'small', type: 'link', onClick: () => openProductDetail(record) },
-              { default: () => '查看' }
-            ),
-            h(
-              'a-button',
-              { size: 'small', type: 'primary', disabled: record.status !== 'DRAFT', onClick: () => openEdit(record) },
-              { default: () => '编辑' }
-            )
-          ]
-        }
-      )
+    fixed: 'right'
   }
 ]
 
@@ -785,7 +766,7 @@ const submitForm = reactive({
   scenarios: '',
   customers: '',
   cases: '',
-  price: '',
+  price: null,
   version: '',
   description: ''
 })
@@ -800,7 +781,7 @@ function resetSubmitForm() {
   submitForm.scenarios = ''
   submitForm.customers = ''
   submitForm.cases = ''
-  submitForm.price = ''
+  submitForm.price = null
   submitForm.version = ''
   submitForm.description = ''
 }
@@ -824,7 +805,7 @@ function openEdit(p) {
   submitForm.scenarios = p.scenarios || ''
   submitForm.customers = p.customers || ''
   submitForm.cases = p.cases || ''
-  submitForm.price = p.price != null ? String(p.price) : ''
+  submitForm.price = p.price != null ? Number(p.price) : null
   submitForm.version = p.version || ''
   submitForm.description = p.description || ''
   submitVisible.value = true
@@ -849,7 +830,7 @@ async function submit() {
       scenarios: submitForm.scenarios,
       customers: submitForm.customers || null,
       cases: submitForm.cases || null,
-      price: submitForm.price === '' ? null : submitForm.price,
+      price: submitForm.price == null ? null : submitForm.price,
       version: submitForm.version,
       description: submitForm.description
     }
