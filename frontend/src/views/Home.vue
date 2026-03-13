@@ -236,7 +236,7 @@ function shuffle(items, seedText) {
 .btn-secondary:hover { background: rgba(255,255,255,0.3); }
 
 .quick-entry { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.entry-card { background: #fff; padding: 24px; border-radius: 12px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.entry-card { background: #fff; padding: 24px; border-radius: 12px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(5, 5, 5, 0.04); }
 .entry-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
 .entry-icon { font-size: 36px; }
 .entry-text h3 { font-size: 16px; margin-bottom: 4px; }

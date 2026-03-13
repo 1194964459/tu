@@ -1,20 +1,17 @@
 <template>
-  <div class="admin-console">
+  <a-config-provider :locale="zhCN">
+    <div class="admin-console">
     <div class="page-header">
       <h1>管理后台</h1>
       <p>试用需求收集、生态产品上架与外部体验入口</p>
     </div>
 
-    <div class="tabs">
-      <button class="tab" :class="{ active: activeTab === 'trials' }" type="button" @click="activeTab = 'trials'">试用需求</button>
-      <button class="tab" :class="{ active: activeTab === 'ecosystem' }" type="button" @click="activeTab = 'ecosystem'">生态产品</button>
-    </div>
-
-    <div v-if="activeTab === 'trials'">
+    <a-tabs v-model:activeKey="activeTab" class="admin-tabs">
+      <a-tab-pane key="trials" tab="试用需求">
       <div class="toolbar">
-        <input v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/能力/场景" />
+        <a-input-search v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/能力/场景" />
         <button class="btn-refresh" type="button" :disabled="loading" @click="loadTrials">
-          {{ loading ? '加载中...' : '刷新' }}
+          {{ loading ? '加载中...' : '查找' }}
         </button>
       </div>
 
@@ -24,41 +21,47 @@
           :columns="trialColumns"
           :data-source="filteredRows"
           :row-key="(r) => r.trialId"
-          :scroll="{ x: 1440, y: 560 }"
+          :scroll="{ x: 1580, y: 560 }"
+          bordered
           :pagination="trialPagination"
           @change="onTrialTableChange"
         >
           <template #emptyText>暂无数据</template>
           <template #bodyCell="{ column, record, text }">
             <template v-if="column.key === 'user'">
-              <div>
+              <div class="flex">
                 <div class="primary">{{ record.userName || record.userUsername || '-' }}</div>
-                <div class="secondary">{{ record.userIndustry || '-' }}</div>
+                <div class="secondary">
+                  <template v-if="splitTags(record.userIndustry).length">
+                    <a-tag v-for="t in splitTags(record.userIndustry)" :key="t">{{ t }}</a-tag>
+                  </template>
+                  <template v-else>-</template>
+                </div>
               </div>
             </template>
             <template v-else-if="column.key === 'product'">
-              <div>
-                <div class="primary">{{ record.productName || '-' }}</div>
-                <div class="secondary">ID: {{ record.productId ?? '-' }}</div>
+              <div class="inline-line">
+                <span class="inline-main">{{ record.productName || '-' }}</span>
+                <span class="inline-sub">(ID: {{ record.productId ?? '-' }})</span>
               </div>
             </template>
             <template v-else-if="column.key === 'solution'">
-              <div>
-                <div class="primary">{{ record.solutionName || '-' }}</div>
-                <div class="secondary">ID: {{ record.solutionId ?? '-' }}</div>
+              <div class="inline-line">
+                <span class="inline-main">{{ record.solutionName || '-' }}</span>
+                <span class="inline-sub">(ID: {{ record.solutionId ?? '-' }})</span>
               </div>
             </template>
-            <template v-else-if="column.key === 'meta'">
-              <div>
-                <div class="primary clamp">{{ record.productCapability || '-' }}</div>
-                <div class="secondary clamp">{{ record.productScenarios || '-' }}</div>
-              </div>
+            <template v-else-if="column.key === 'capability'">
+              <div class="primary clamp">{{ record.productCapability || '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'scenarios'">
+              <div class="primary clamp">{{ record.productScenarios || '-' }}</div>
             </template>
             <template v-else-if="column.key === 'price'">
-              <div>
-                <div class="primary">{{ record.productPrice != null ? `${record.productPrice}` : '-' }}</div>
-                <div class="secondary">{{ record.productVersion || '-' }}</div>
-              </div>
+              <div class="primary">{{ record.productPrice != null ? `${record.productPrice}` : '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'version'">
+              <div class="primary">{{ record.productVersion || '-' }}</div>
             </template>
             <template v-else-if="column.key === 'status'">
               <a-tag :color="trialStatusTagColor(record.trialStatus)">
@@ -77,9 +80,10 @@
           </template>
         </a-table>
       </div>
-    </div>
+      </a-tab-pane>
 
-    <div v-else class="eco">
+      <a-tab-pane key="ecosystem" tab="生态产品">
+    <div class="eco">
       <div class="toolbar">
         <input v-model="ecoKeyword" class="search" type="text" placeholder="搜索生态产品/供应商/能力/场景/客户/案例" />
         <div class="inline">
@@ -99,34 +103,43 @@
           :columns="ecoPendingColumns"
           :data-source="pendingFiltered"
           :row-key="(r) => r.id"
-          :scroll="{ x: 1240, y: 260 }"
-          :pagination="false"
+          :scroll="{ x: 1780, y: 260 }"
+          bordered
         >
           <template #emptyText>暂无待审核产品</template>
           <template #bodyCell="{ column, record, text }">
             <template v-if="column.key === 'product'">
               <div>
                 <div class="primary">{{ record.name || '-' }}</div>
-                <div class="secondary">{{ record.category || '-' }}</div>
+                <div class="secondary">
+                  <template v-if="splitTags(record.category).length">
+                    <a-tag v-for="t in splitTags(record.category)" :key="t">{{ t }}</a-tag>
+                  </template>
+                  <template v-else>-</template>
+                </div>
               </div>
             </template>
             <template v-else-if="column.key === 'provider'">
-              <div>
-                <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
-                <div class="secondary clamp">{{ record.sourceUrl || '-' }}</div>
-              </div>
+              <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
             </template>
-            <template v-else-if="column.key === 'meta'">
-              <div>
-                <div class="primary clamp">{{ record.capability || '-' }}</div>
-                <div class="secondary clamp">{{ record.scenarios || '-' }}</div>
-              </div>
+            <template v-else-if="column.key === 'source'">
+              <div class="primary">{{ record.sourceType || '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'website'">
+              <a v-if="record.sourceUrl" class="link" :href="record.sourceUrl" target="_blank" rel="noopener noreferrer">打开</a>
+              <span v-else>-</span>
+            </template>
+            <template v-else-if="column.key === 'capability'">
+              <div class="primary clamp">{{ record.capability || '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'scenarios'">
+              <div class="primary clamp">{{ record.scenarios || '-' }}</div>
             </template>
             <template v-else-if="column.key === 'price'">
-              <div>
-                <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
-                <div class="secondary">{{ record.version || '-' }}</div>
-              </div>
+              <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'version'">
+              <div class="primary">{{ record.version || '-' }}</div>
             </template>
             <template v-else-if="column.key === 'external'">
               <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
@@ -158,26 +171,47 @@
           :columns="ecoMineColumns"
           :data-source="mineFiltered"
           :row-key="(r) => r.id"
-          :scroll="{ x: 900, y: 260 }"
-          :pagination="false"
+          :scroll="{ x: 1620, y: 260 }"
+          bordered
         >
           <template #emptyText>暂无提交记录</template>
           <template #bodyCell="{ column, record, text }">
             <template v-if="column.key === 'product'">
               <div>
                 <div class="primary">{{ record.name || '-' }}</div>
-                <div class="secondary">{{ record.category || '-' }}</div>
+                <div class="secondary">
+                  <template v-if="splitTags(record.category).length">
+                    <a-tag v-for="t in splitTags(record.category)" :key="t">{{ t }}</a-tag>
+                  </template>
+                  <template v-else>-</template>
+                </div>
               </div>
+            </template>
+            <template v-else-if="column.key === 'provider'">
+              <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'source'">
+              <div class="primary">{{ record.sourceType || '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'website'">
+              <a v-if="record.sourceUrl" class="link" :href="record.sourceUrl" target="_blank" rel="noopener noreferrer">打开</a>
+              <span v-else>-</span>
             </template>
             <template v-else-if="column.key === 'external'">
               <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
               <span v-else>-</span>
             </template>
+            <template v-else-if="column.key === 'customers'">
+              <div class="primary clamp">{{ record.customers || '-' }}</div>
+            </template>
             <template v-else-if="column.key === 'cases'">
-              <div>
-                <div class="primary clamp">{{ record.customers || '-' }}</div>
-                <div class="secondary clamp">{{ record.cases || '-' }}</div>
-              </div>
+              <div class="primary clamp">{{ record.cases || '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'price'">
+              <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
+            </template>
+            <template v-else-if="column.key === 'version'">
+              <div class="primary">{{ record.version || '-' }}</div>
             </template>
             <template v-else-if="column.key === 'status'">
               <a-tag :color="productStatusTagColor(record.status)">
@@ -197,6 +231,8 @@
         </a-table>
       </div>
     </div>
+      </a-tab-pane>
+    </a-tabs>
 
     <div v-if="detailVisible" class="modal-overlay" @click="closeDetail">
       <div class="modal" @click.stop>
@@ -440,11 +476,13 @@
         </a-form-item>
       </a-form>
     </a-modal>
-  </div>
+    </div>
+  </a-config-provider>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import { adminAPI, partnerAPI } from '../api'
 
 const activeTab = ref('trials')
@@ -517,7 +555,7 @@ const trialColumns = [
   {
     title: '用户',
     key: 'user',
-    width: 200,
+    width: 140,
     fixed: 'left'
   },
   {
@@ -531,15 +569,22 @@ const trialColumns = [
     width: 220
   },
   {
-    title: '能力/场景',
-    key: 'meta',
-    width: 260,
-    ellipsis: true
+    title: '能力',
+    key: 'capability',
   },
   {
-    title: '价格/版本',
+    title: '场景',
+    key: 'scenarios',
+  },
+  {
+    title: '价格',
     key: 'price',
-    width: 140
+    width: 90
+  },
+  {
+    title: '版本',
+    key: 'version',
+    width: 90
   },
   {
     title: '状态',
@@ -571,17 +616,39 @@ const ecoPendingColumns = [
   {
     title: '供应商',
     key: 'provider',
+    width: 160
+  },
+  {
+    title: '来源',
+    key: 'source',
+    width: 120
+  },
+  {
+    title: '供应商官网',
+    key: 'website',
     width: 220
   },
   {
-    title: '能力/场景',
-    key: 'meta',
-    width: 260
+    title: '能力',
+    key: 'capability',
+    width: 220,
+    ellipsis: true
   },
   {
-    title: '价格/版本',
+    title: '场景',
+    key: 'scenarios',
+    width: 220,
+    ellipsis: true
+  },
+  {
+    title: '价格',
     key: 'price',
-    width: 140
+    width: 90
+  },
+  {
+    title: '版本',
+    key: 'version',
+    width: 90
   },
   {
     title: '外部体验',
@@ -610,14 +677,46 @@ const ecoMineColumns = [
     fixed: 'left'
   },
   {
+    title: '供应商',
+    key: 'provider',
+    width: 160
+  },
+  {
+    title: '来源',
+    key: 'source',
+    width: 120
+  },
+  {
+    title: '供应商官网',
+    key: 'website',
+    width: 220
+  },
+  {
     title: '外部体验',
     key: 'external',
     width: 120
   },
   {
-    title: '客户/案例',
+    title: '客户',
+    key: 'customers',
+    width: 200,
+    ellipsis: true
+  },
+  {
+    title: '案例',
     key: 'cases',
-    width: 260
+    width: 240,
+    ellipsis: true
+  },
+  {
+    title: '价格',
+    key: 'price',
+    width: 90
+  },
+  {
+    title: '版本',
+    key: 'version',
+    width: 90
   },
   {
     title: '状态',
@@ -760,6 +859,7 @@ const submitForm = reactive({
   name: '',
   category: '',
   providerName: '',
+  sourceType: '',
   sourceUrl: '',
   externalDemoUrl: '',
   capability: '',
@@ -775,6 +875,7 @@ function resetSubmitForm() {
   submitForm.name = ''
   submitForm.category = ''
   submitForm.providerName = ''
+  submitForm.sourceType = '伙伴自助'
   submitForm.sourceUrl = ''
   submitForm.externalDemoUrl = ''
   submitForm.capability = ''
@@ -799,6 +900,7 @@ function openEdit(p) {
   submitForm.name = p.name || ''
   submitForm.category = p.category || ''
   submitForm.providerName = p.providerName || ''
+  submitForm.sourceType = p.sourceType || ''
   submitForm.sourceUrl = p.sourceUrl || ''
   submitForm.externalDemoUrl = p.externalDemoUrl || ''
   submitForm.capability = p.capability || ''
@@ -897,7 +999,9 @@ function buildProductSearchText(p) {
     p.name,
     p.category,
     p.providerName,
+    p.sourceType,
     p.sourceName,
+    p.sourceUrl,
     p.capability,
     p.scenarios,
     p.customers,
@@ -905,6 +1009,15 @@ function buildProductSearchText(p) {
     p.version
   ].filter(Boolean)
   return parts.join(' ').toLowerCase()
+}
+
+function splitTags(v) {
+  const raw = String(v || '').trim()
+  if (!raw) return []
+  return raw
+    .split(/[,/，、;\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
 }
 
 function formatTrialStatus(status) {
@@ -937,14 +1050,12 @@ function formatProductStatus(status) {
 .page-header h1 { font-size: 24px; margin-bottom: 6px; }
 .page-header p { color: #666; }
 
-.tabs { display: flex; gap: 10px; margin-bottom: 14px; }
-.tab { padding: 10px 14px; border-radius: 10px; border: 1px solid #e0e0e0; background: #fff; cursor: pointer; font-size: 14px; color: #333; }
-.tab.active { border-color: #0066ff; color: #0066ff; background: #e8f4ff; }
+.admin-tabs :deep(.ant-tabs-nav) { margin-bottom: 14px; }
 
 .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
 .search { flex: 1; max-width: 520px; padding: 10px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
 .search:focus { outline: none; border-color: #0066ff; }
-.btn-refresh { padding: 10px 16px; border: 1px solid #e0e0e0; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.btn-refresh { padding: 8px 16px; border: 1px solid #e0e0e0; background: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-primary { padding: 10px 16px; border: none; background: #0066ff; color: #fff; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .btn-primary:hover { opacity: 0.9; }
@@ -964,7 +1075,10 @@ function formatProductStatus(status) {
 .tr:hover { background: #fcfcff; }
 .td { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
 .primary { font-size: 14px; color: #222; }
-.secondary { font-size: 12px; color: #888; }
+.secondary { font-size: 12px; color: #888; margin-left: 6px; }
+.inline-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.inline-main { font-size: 14px; color: #222; }
+.inline-sub { font-size: 12px; color: #888; }
 .clamp { display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 .status { display: inline-flex; padding: 4px 10px; border-radius: 999px; font-size: 12px; width: fit-content; border: 1px solid #e0e0e0; color: #666; background: #fff; }

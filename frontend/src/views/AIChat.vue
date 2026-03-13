@@ -271,7 +271,7 @@ function chooseBundle(bundle) {
 .chat-sidebar h3 { font-size: 18px; margin-bottom: 12px; }
 .chat-intro { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
 
-.quick-questions h4 { font-size: 14px; color: #999; margin-bottom: 12px;  margin-top: 60px; }
+.quick-questions h4 { font-size: 14px; margin-bottom: 12px;  margin-top: 60px; }
 .quick-btn { display: block; width: 100%; text-align: left; padding: 10px 12px; background: #f5f7fa; border: none; border-radius: 8px; margin-bottom: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
 .quick-btn:hover { background: #e8f4ff; color: #0066ff; }
 

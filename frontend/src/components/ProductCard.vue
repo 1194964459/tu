@@ -68,6 +68,7 @@ const scenarioText = computed(() => {
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  border: 1px solid rgba(5, 5, 5, 0.04);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;

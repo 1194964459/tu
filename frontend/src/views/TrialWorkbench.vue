@@ -422,7 +422,7 @@ function purchaseIntentText(v) {
 .page-header p { color: #666; }
 
 .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
-.stat-card { background: #fff; padding: 24px; border-radius: 12px; display: flex; align-items: center; gap: 16px; }
+.stat-card { background: #fff; padding: 24px; border-radius: 12px; display: flex; align-items: center; gap: 16px; border: 1px solid rgba(5, 5, 5, 0.1);}
 .stat-icon { font-size: 32px; }
 .stat-value { font-size: 28px; font-weight: 700; }
 .stat-label { color: #999; font-size: 14px; }
@@ -432,7 +432,7 @@ function purchaseIntentText(v) {
 .btn-new { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
 
 .trial-list { display: flex; flex-direction: column; gap: 16px; }
-.trial-card { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.trial-card { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(5, 5, 5, 0.1);}
 .trial-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .trial-product { font-size: 18px; font-weight: 600; }
 .trial-status { padding: 4px 12px; border-radius: 12px; font-size: 12px; }
