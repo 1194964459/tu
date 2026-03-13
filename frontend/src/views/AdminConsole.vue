@@ -19,65 +19,17 @@
       </div>
 
       <div class="table">
-        <div class="thead">
-          <div class="th w-user">用户</div>
-          <div class="th w-product">产品</div>
-          <div class="th w-solution">方案</div>
-          <div class="th w-meta">能力/场景</div>
-          <div class="th w-price">价格/版本</div>
-          <div class="th w-status">状态</div>
-          <div class="th w-time">创建时间</div>
-          <div class="th w-op">操作</div>
-        </div>
-
-        <div
-          ref="bodyRef"
-          class="tbody"
-          :style="{ maxHeight: bodyMaxHeight + 'px' }"
-          @scroll="onScroll"
+        <a-table
+          :loading="loading"
+          :columns="trialColumns"
+          :data-source="filteredRows"
+          :row-key="(r) => r.trialId"
+          :scroll="{ x: 1440, y: 560 }"
+          :pagination="trialPagination"
+          @change="onTrialTableChange"
         >
-          <div :style="{ height: topPad + 'px' }"></div>
-          <div
-            v-for="row in visibleRows"
-            :key="row.trialId"
-            class="tr"
-          >
-            <div class="td w-user">
-              <div class="primary">{{ row.userName || row.userUsername || '-' }}</div>
-              <div class="secondary">{{ row.userIndustry || '-' }}</div>
-            </div>
-            <div class="td w-product">
-              <div class="primary">{{ row.productName || '-' }}</div>
-              <div class="secondary">ID: {{ row.productId ?? '-' }}</div>
-            </div>
-            <div class="td w-solution">
-              <div class="primary">{{ row.solutionName || '-' }}</div>
-              <div class="secondary">ID: {{ row.solutionId ?? '-' }}</div>
-            </div>
-            <div class="td w-meta">
-              <div class="primary clamp">{{ row.productCapability || '-' }}</div>
-              <div class="secondary clamp">{{ row.productScenarios || '-' }}</div>
-            </div>
-            <div class="td w-price">
-              <div class="primary">{{ row.productPrice != null ? `${row.productPrice}` : '-' }}</div>
-              <div class="secondary">{{ row.productVersion || '-' }}</div>
-            </div>
-            <div class="td w-status">
-            <span class="status" :class="trialStatusClass(row.trialStatus)">
-              {{ formatTrialStatus(row.trialStatus) }}
-              </span>
-            </div>
-            <div class="td w-time">{{ formatDateTime(row.createTime) }}</div>
-            <div class="td w-op">
-              <button class="btn-view" type="button" @click="openDetail(row.trialId)">查看</button>
-            </div>
-          </div>
-          <div :style="{ height: bottomPad + 'px' }"></div>
-
-          <div v-if="!loading && filteredRows.length === 0" class="empty">
-            暂无数据
-          </div>
-        </div>
+          <template #emptyText>暂无数据</template>
+        </a-table>
       </div>
     </div>
 
@@ -96,87 +48,30 @@
 
       <div class="section-title">待审核（管理员）</div>
       <div class="table">
-        <div class="thead eco-head">
-          <div class="th">产品</div>
-          <div class="th">供应商</div>
-          <div class="th">能力/场景</div>
-          <div class="th">价格/版本</div>
-          <div class="th">外部体验</div>
-          <div class="th">状态</div>
-          <div class="th">操作</div>
-        </div>
-        <div class="tbody" :style="{ maxHeight: 260 + 'px' }">
-          <div v-for="p in pendingFiltered" :key="p.id" class="tr eco-row">
-            <div class="td">
-              <div class="primary">{{ p.name }}</div>
-              <div class="secondary">{{ p.category || '-' }}</div>
-            </div>
-            <div class="td">
-              <div class="primary">{{ p.providerName || p.sourceName || '-' }}</div>
-              <div class="secondary">{{ p.sourceUrl || '-' }}</div>
-            </div>
-            <div class="td">
-              <div class="primary clamp">{{ p.capability || '-' }}</div>
-              <div class="secondary clamp">{{ p.scenarios || '-' }}</div>
-            </div>
-            <div class="td">
-              <div class="primary">{{ p.price != null ? `${p.price}` : '-' }}</div>
-              <div class="secondary">{{ p.version || '-' }}</div>
-            </div>
-            <div class="td">
-              <a v-if="p.externalDemoUrl" class="link" :href="p.externalDemoUrl" target="_blank">打开</a>
-              <span v-else>-</span>
-            </div>
-            <div class="td">
-              <span class="status" :class="productStatusClass(p.status)">
-                {{ formatProductStatus(p.status) }}
-              </span>
-            </div>
-            <div class="td op">
-              <button class="btn-view" type="button" @click="openProductDetail(p)">查看</button>
-              <button class="btn-ok" type="button" @click="approve(p)">上架</button>
-              <button class="btn-warn" type="button" @click="offline(p)">下架</button>
-            </div>
-          </div>
-          <div v-if="!ecoLoading && pendingFiltered.length === 0" class="empty">暂无待审核产品</div>
-        </div>
+        <a-table
+          :loading="ecoLoading"
+          :columns="ecoPendingColumns"
+          :data-source="pendingFiltered"
+          :row-key="(r) => r.id"
+          :scroll="{ x: 1240, y: 260 }"
+          :pagination="false"
+        >
+          <template #emptyText>暂无待审核产品</template>
+        </a-table>
       </div>
 
       <div class="section-title">我的提交（伙伴自助）</div>
       <div class="table">
-        <div class="thead eco-head">
-          <div class="th">产品</div>
-          <div class="th">外部体验</div>
-          <div class="th">客户/案例</div>
-          <div class="th">状态</div>
-          <div class="th">操作</div>
-        </div>
-        <div class="tbody" :style="{ maxHeight: 260 + 'px' }">
-          <div v-for="p in mineFiltered" :key="p.id" class="tr eco-row">
-            <div class="td">
-              <div class="primary">{{ p.name }}</div>
-              <div class="secondary">{{ p.category || '-' }}</div>
-            </div>
-            <div class="td">
-              <a v-if="p.externalDemoUrl" class="link" :href="p.externalDemoUrl" target="_blank">打开</a>
-              <span v-else>-</span>
-            </div>
-            <div class="td">
-              <div class="primary clamp">{{ p.customers || '-' }}</div>
-              <div class="secondary clamp">{{ p.cases || '-' }}</div>
-            </div>
-            <div class="td">
-              <span class="status" :class="productStatusClass(p.status)">
-                {{ formatProductStatus(p.status) }}
-              </span>
-            </div>
-            <div class="td op">
-              <button class="btn-view" type="button" @click="openProductDetail(p)">查看</button>
-              <button class="btn-ok" type="button" :disabled="p.status !== 'DRAFT'" @click="openEdit(p)">编辑</button>
-            </div>
-          </div>
-          <div v-if="!ecoLoading && mineFiltered.length === 0" class="empty">暂无提交记录</div>
-        </div>
+        <a-table
+          :loading="ecoLoading"
+          :columns="ecoMineColumns"
+          :data-source="mineFiltered"
+          :row-key="(r) => r.id"
+          :scroll="{ x: 900, y: 260 }"
+          :pagination="false"
+        >
+          <template #emptyText>暂无提交记录</template>
+        </a-table>
       </div>
     </div>
 
@@ -419,7 +314,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { adminAPI, partnerAPI } from '../api'
 
 const activeTab = ref('trials')
@@ -444,11 +339,13 @@ const detail = reactive({
   feedback: null
 })
 
-const bodyRef = ref(null)
-const bodyMaxHeight = 560
-const rowHeight = 74
-const overscan = 6
-const scrollTop = ref(0)
+const trialPagination = reactive({
+  current: 1,
+  pageSize: 10,
+  showSizeChanger: true,
+  pageSizeOptions: ['10', '20', '50'],
+  showTotal: (total) => `共 ${total} 条`
+})
 
 const pendingFiltered = computed(() => {
   const kw = ecoKeyword.value.trim().toLowerCase()
@@ -482,29 +379,278 @@ const filteredRows = computed(() => {
   })
 })
 
-const useVirtual = computed(() => filteredRows.value.length > 20)
-const visibleCount = computed(() => Math.ceil(bodyMaxHeight / rowHeight) + overscan * 2)
-const startIndex = computed(() => {
-  if (!useVirtual.value) return 0
-  const base = Math.floor(scrollTop.value / rowHeight) - overscan
-  return Math.max(0, base)
+watch(keyword, () => {
+  trialPagination.current = 1
 })
-const endIndex = computed(() => {
-  if (!useVirtual.value) return filteredRows.value.length
-  return Math.min(filteredRows.value.length, startIndex.value + visibleCount.value)
-})
-const topPad = computed(() => (useVirtual.value ? startIndex.value * rowHeight : 0))
-const bottomPad = computed(() => {
-  if (!useVirtual.value) return 0
-  return Math.max(0, (filteredRows.value.length - endIndex.value) * rowHeight)
-})
-const visibleRows = computed(() => filteredRows.value.slice(startIndex.value, endIndex.value))
 
-watch(keyword, async () => {
-  await nextTick()
-  scrollTop.value = 0
-  if (bodyRef.value) bodyRef.value.scrollTop = 0
-})
+const trialColumns = [
+  {
+    title: '用户',
+    key: 'user',
+    width: 200,
+    fixed: 'left',
+    customRender: ({ record }) => {
+      const primaryText = record.userName || record.userUsername || '-'
+      const secondaryText = record.userIndustry || '-'
+      return h('div', [
+        h('div', { class: 'primary' }, primaryText),
+        h('div', { class: 'secondary' }, secondaryText)
+      ])
+    }
+  },
+  {
+    title: '产品',
+    key: 'product',
+    width: 220,
+    customRender: ({ record }) => {
+      return h('div', [
+        h('div', { class: 'primary' }, record.productName || '-'),
+        h('div', { class: 'secondary' }, `ID: ${record.productId ?? '-'}`)
+      ])
+    }
+  },
+  {
+    title: '方案',
+    key: 'solution',
+    width: 220,
+    customRender: ({ record }) => {
+      return h('div', [
+        h('div', { class: 'primary' }, record.solutionName || '-'),
+        h('div', { class: 'secondary' }, `ID: ${record.solutionId ?? '-'}`)
+      ])
+    }
+  },
+  {
+    title: '能力/场景',
+    key: 'meta',
+    width: 260,
+    ellipsis: true,
+    customRender: ({ record }) => {
+      return h('div', [
+        h('div', { class: 'primary clamp' }, record.productCapability || '-'),
+        h('div', { class: 'secondary clamp' }, record.productScenarios || '-')
+      ])
+    }
+  },
+  {
+    title: '价格/版本',
+    key: 'price',
+    width: 140,
+    customRender: ({ record }) => {
+      return h('div', [
+        h('div', { class: 'primary' }, record.productPrice != null ? `${record.productPrice}` : '-'),
+        h('div', { class: 'secondary' }, record.productVersion || '-')
+      ])
+    }
+  },
+  {
+    title: '状态',
+    dataIndex: 'trialStatus',
+    key: 'status',
+    width: 120,
+    customRender: ({ record }) => {
+      return h(
+        'a-tag',
+        { color: trialStatusTagColor(record.trialStatus) },
+        { default: () => formatTrialStatus(record.trialStatus) }
+      )
+    }
+  },
+  {
+    title: '创建时间',
+    dataIndex: 'createTime',
+    key: 'time',
+    width: 180,
+    customRender: ({ record }) => formatDateTime(record.createTime)
+  },
+  {
+    title: '操作',
+    key: 'op',
+    width: 100,
+    fixed: 'right',
+    customRender: ({ record }) => {
+      return h(
+        'a-button',
+        { size: 'small', type: 'link', onClick: () => openDetail(record.trialId) },
+        { default: () => '查看' }
+      )
+    }
+  }
+]
+
+const ecoPendingColumns = [
+  {
+    title: '产品',
+    key: 'product',
+    width: 220,
+    fixed: 'left',
+    customRender: ({ record }) =>
+      h('div', [
+        h('div', { class: 'primary' }, record.name || '-'),
+        h('div', { class: 'secondary' }, record.category || '-')
+      ])
+  },
+  {
+    title: '供应商',
+    key: 'provider',
+    width: 220,
+    customRender: ({ record }) =>
+      h('div', [
+        h('div', { class: 'primary' }, record.providerName || record.sourceName || '-'),
+        h('div', { class: 'secondary clamp' }, record.sourceUrl || '-')
+      ])
+  },
+  {
+    title: '能力/场景',
+    key: 'meta',
+    width: 260,
+    customRender: ({ record }) =>
+      h('div', [
+        h('div', { class: 'primary clamp' }, record.capability || '-'),
+        h('div', { class: 'secondary clamp' }, record.scenarios || '-')
+      ])
+  },
+  {
+    title: '价格/版本',
+    key: 'price',
+    width: 140,
+    customRender: ({ record }) =>
+      h('div', [
+        h('div', { class: 'primary' }, record.price != null ? `${record.price}` : '-'),
+        h('div', { class: 'secondary' }, record.version || '-')
+      ])
+  },
+  {
+    title: '外部体验',
+    key: 'external',
+    width: 120,
+    customRender: ({ record }) => {
+      if (!record.externalDemoUrl) return '-'
+      return h(
+        'a',
+        { class: 'link', href: record.externalDemoUrl, target: '_blank', rel: 'noopener noreferrer' },
+        '打开'
+      )
+    }
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
+    width: 120,
+    customRender: ({ record }) => {
+      return h(
+        'a-tag',
+        { color: productStatusTagColor(record.status) },
+        { default: () => formatProductStatus(record.status) }
+      )
+    }
+  },
+  {
+    title: '操作',
+    key: 'op',
+    width: 160,
+    fixed: 'right',
+    customRender: ({ record }) =>
+      h(
+        'a-space',
+        { size: 8 },
+        {
+          default: () => [
+            h(
+              'a-button',
+              { size: 'small', type: 'link', onClick: () => openProductDetail(record) },
+              { default: () => '查看' }
+            ),
+            h(
+              'a-button',
+              { size: 'small', type: 'primary', onClick: () => approve(record) },
+              { default: () => '上架' }
+            ),
+            h(
+              'a-button',
+              { size: 'small', danger: true, onClick: () => offline(record) },
+              { default: () => '下架' }
+            )
+          ]
+        }
+      )
+  }
+]
+
+const ecoMineColumns = [
+  {
+    title: '产品',
+    key: 'product',
+    width: 220,
+    fixed: 'left',
+    customRender: ({ record }) =>
+      h('div', [
+        h('div', { class: 'primary' }, record.name || '-'),
+        h('div', { class: 'secondary' }, record.category || '-')
+      ])
+  },
+  {
+    title: '外部体验',
+    key: 'external',
+    width: 120,
+    customRender: ({ record }) => {
+      if (!record.externalDemoUrl) return '-'
+      return h(
+        'a',
+        { class: 'link', href: record.externalDemoUrl, target: '_blank', rel: 'noopener noreferrer' },
+        '打开'
+      )
+    }
+  },
+  {
+    title: '客户/案例',
+    key: 'cases',
+    width: 260,
+    customRender: ({ record }) =>
+      h('div', [
+        h('div', { class: 'primary clamp' }, record.customers || '-'),
+        h('div', { class: 'secondary clamp' }, record.cases || '-')
+      ])
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
+    width: 120,
+    customRender: ({ record }) =>
+      h(
+        'a-tag',
+        { color: productStatusTagColor(record.status) },
+        { default: () => formatProductStatus(record.status) }
+      )
+  },
+  {
+    title: '操作',
+    key: 'op',
+    width: 140,
+    fixed: 'right',
+    customRender: ({ record }) =>
+      h(
+        'a-space',
+        { size: 8 },
+        {
+          default: () => [
+            h(
+              'a-button',
+              { size: 'small', type: 'link', onClick: () => openProductDetail(record) },
+              { default: () => '查看' }
+            ),
+            h(
+              'a-button',
+              { size: 'small', type: 'primary', disabled: record.status !== 'DRAFT', onClick: () => openEdit(record) },
+              { default: () => '编辑' }
+            )
+          ]
+        }
+      )
+  }
+]
 
 onMounted(() => {
   loadTrials()
@@ -563,8 +709,10 @@ function normalizeRow(r) {
   }
 }
 
-function onScroll(e) {
-  scrollTop.value = e.target.scrollTop
+function onTrialTableChange(pagination) {
+  if (!pagination) return
+  trialPagination.current = pagination.current
+  trialPagination.pageSize = pagination.pageSize
 }
 
 async function openDetail(trialId) {
@@ -592,6 +740,23 @@ async function openDetail(trialId) {
 
 function closeDetail() {
   detailVisible.value = false
+}
+
+function trialStatusTagColor(status) {
+  const s = String(status || '').toUpperCase()
+  if (s === 'RUNNING') return 'green'
+  if (s === 'COMPLETED') return 'blue'
+  if (s === 'EXPIRED') return 'red'
+  if (s === 'PENDING') return 'orange'
+  return 'default'
+}
+
+function productStatusTagColor(status) {
+  const s = String(status || '').toUpperCase()
+  if (s === 'ACTIVE') return 'green'
+  if (s === 'OFFLINE') return 'red'
+  if (s === 'DRAFT') return 'orange'
+  return 'default'
 }
 
 const productDetailVisible = ref(false)
@@ -773,11 +938,6 @@ function formatTrialStatus(status) {
   return map[s] || s
 }
 
-function trialStatusClass(status) {
-  const s = String(status || '').toLowerCase()
-  return s || ''
-}
-
 function formatProductStatus(status) {
   const s = String(status || '').toUpperCase()
   if (!s) return '-'
@@ -787,11 +947,6 @@ function formatProductStatus(status) {
     OFFLINE: '已下架'
   }
   return map[s] || s
-}
-
-function productStatusClass(status) {
-  const s = String(status || '').toLowerCase()
-  return s || ''
 }
 </script>
 
