@@ -2,16 +2,16 @@
   <div class="app">
     <header class="header">
       <div class="header-content">
-        <div class="logo">
-          <span class="logo-icon">🏢</span>
-          <span class="logo-text">产品体验平台</span>
-        </div>
+        <div class="logo-module" @click="goHome">
+          <img src="@/assets/icons/logo.svg" alt="Logo" class="logo" />
+          <span class="title">动态门户</span>
+      </div>
         <nav class="nav">
           <router-link to="/" class="nav-link" :class="{ active: $route.path === '/' }">首页</router-link>
           <router-link to="/products" class="nav-link" :class="{ active: $route.path.startsWith('/products') }">产品库</router-link>
           <router-link to="/ai-chat" class="nav-link" :class="{ active: $route.path === '/ai-chat' }">AI 顾问</router-link>
-          <router-link to="/trial" class="nav-link trial-link" :class="{ active: $route.path === '/trial' }">试用工作台</router-link>
-          <router-link to="/admin" class="nav-link admin-link" :class="{ active: $route.path === '/admin' }">管理后台</router-link>
+          <router-link to="/trial" class="nav-link" :class="{ active: $route.path === '/trial' }">试用工作台</router-link>
+          <router-link to="/admin" class="nav-link" :class="{ active: $route.path === '/admin' }">管理后台</router-link>
         </nav>
         <div class="user-info">
           <template v-if="currentUser">
@@ -366,25 +366,42 @@ function bufferToHex(buffer) {
 
 <style>
 .app { min-height: 100vh; }
+.logo-module{   
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer; 
+}
+  .logo {
+    height: 32px;
+  }
+
+  .title {
+    font-size: 20px;
+    font-weight: 700;
+    transition: color 0.3s;
+  }
+
 .header { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100; }
 .header-content { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
 .logo { display: flex; align-items: center; gap: 8px; }
 .logo-icon { font-size: 24px; }
 .logo-text { font-size: 18px; font-weight: 600; color: #1a1a2e; }
 .nav { display: flex; gap: 8px; }
-.nav-link { padding: 8px 16px; border-radius: 6px; text-decoration: none; color: #666; font-size: 14px; transition: all 0.2s; }
-.nav-link:hover { background: #f5f7fa; color: #333; }
-.nav-link.active { background: #e8f4ff; color: #0066ff; }
-.trial-link { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff !important; }
-.trial-link:hover { opacity: 0.9; }
-.admin-link { background: #fff7e6; color: #fa8c16 !important; border: 1px solid #ffe7ba; }
-.admin-link:hover { background: #fff1d6; }
+.nav-link { padding: 8px 16px;  text-decoration: none; color: #666; font-size: 16px; transition: all 0.2s; font-weight: 500;}
+/* border-radius: 6px; */
+/* .nav-link:hover { background: #f5f7fa; color: #333;  border-bottom: 1px solid #0066ff;}
+.nav-link.active { background: #e8f4ff; color: #0066ff; } */
+
+.nav-link:hover { border-bottom: 2px solid #0066ff;}
+.nav-link.active { color: #0066ff;   border-bottom: 2px solid #0066ff;}
+
 .user-info { display: inline-flex; align-items: center; gap: 10px; }
 .user-name { font-size: 13px; color: #333; font-weight: 600; }
 .role-badge { padding: 4px 12px; background: #f0f0f0; border-radius: 12px; font-size: 12px; color: #666; }
 .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
 
-.btn-auth { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid #e0e0e0; background: #fff; color: #333; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+.btn-auth { height: 32px; padding: 0 14px; border-radius: 4px; border: 1px solid #e0e0e0; background: #fff; color: #333; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
 .btn-auth.primary { background: #0066ff; border-color: #0066ff; color: #fff; box-shadow: 0 6px 16px rgba(0, 102, 255, 0.18); }
 .btn-auth.ghost { background: #fff; }
 .btn-auth:hover { opacity: 0.92; }
