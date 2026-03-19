@@ -18,6 +18,9 @@ public interface ProductMapper {
     @Select("SELECT * FROM products WHERE status = 'ACTIVE' ORDER BY popularity DESC LIMIT #{limit}")
     List<Product> findPopular(Integer limit);
 
+    @Select("SELECT DISTINCT category FROM products WHERE status = 'ACTIVE' AND category IS NOT NULL AND category <> '' ORDER BY category")
+    List<String> distinctCategories();
+
     @Select("SELECT * FROM products WHERE status = 'ACTIVE' AND " +
             "(name LIKE CONCAT('%', #{keyword}, '%') " +
             "OR category LIKE CONCAT('%', #{keyword}, '%') " +
