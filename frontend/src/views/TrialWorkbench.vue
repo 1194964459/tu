@@ -1,7 +1,7 @@
 <template>
   <div class="trial-workbench">
     <div class="page-header">
-      <h1>🧪 在线试用工作台</h1>
+      <h1>在线试用工作台</h1>
       <p>体验产品功能，提交反馈，助力购买决策</p>
     </div>
 

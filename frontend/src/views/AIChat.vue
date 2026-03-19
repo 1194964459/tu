@@ -1,7 +1,7 @@
 <template>
-  <div class="ai-chat">
-    <div class="chat-container">
-      <div class="chat-sidebar">
+  <div class="ai-chat" :class="{ embedded }">
+    <div class="chat-container" :class="{ compact: !showSidebar }">
+      <div v-if="showSidebar" class="chat-sidebar">
         <h3>💡 AI 智能顾问</h3>
         <p class="chat-intro">告诉我您的需求，AI 将为您推荐合适的产品和方案</p>
         
@@ -146,6 +146,13 @@ import { useRouter } from 'vue-router'
 import { aiAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
 
+defineProps({
+  embedded: { type: Boolean, default: false },
+  showSidebar: { type: Boolean, default: true }
+})
+
+defineExpose({ sendMessage })
+
 const messages = ref([
   {
     role: 'assistant',
@@ -264,8 +271,11 @@ function chooseBundle(bundle) {
 
 <style scoped>
 .ai-chat { height: calc(100vh - 140px); }
+.ai-chat.embedded { height: 100%; }
 
 .chat-container { display: grid; grid-template-columns: 280px 1fr; gap: 24px; height: 100%; }
+.chat-container.compact { grid-template-columns: 1fr; }
+.chat-container { min-height: 0; }
 
 .chat-sidebar { background: #fff; border-radius: 12px; padding: 24px; height: fit-content; }
 .chat-sidebar h3 { font-size: 18px; margin-bottom: 12px; }
@@ -276,8 +286,10 @@ function chooseBundle(bundle) {
 .quick-btn:hover { background: #e8f4ff; color: #0066ff; }
 
 .chat-main { background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+.chat-main { min-height: 0; }
 
 .messages { flex: 1; overflow-y: auto; padding: 24px; }
+.messages { min-height: 0; }
 
 .message { display: flex; gap: 12px; margin-bottom: 20px; }
 .message-avatar { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 50%; font-size: 18px; flex-shrink: 0; }
@@ -299,7 +311,7 @@ function chooseBundle(bundle) {
 .recommend-section { margin-top: 12px; }
 .recommend-section h4 { font-size: 13px; color: #999; margin-bottom: 8px; }
 
-.product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.product-grid {}
 
 .solution-list { display: flex; flex-direction: column; gap: 8px; }
 .solution-item { padding: 12px; background: #f9fafb; border-radius: 8px; }
