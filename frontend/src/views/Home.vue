@@ -239,7 +239,9 @@ function buildGuessProducts(list, { favorites, viewed, exclude }) {
 .section { background: transparent; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .section-header h2 { font-size: 24px; }
-.more-link { color: #0066ff; text-decoration: none; font-size: 14px; }
+.more-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(22, 119, 255, 0.35); background: rgba(22, 119, 255, 0.06); color: #1677ff; text-decoration: none; font-size: 13px; font-weight: 700; line-height: 1; transition: all 0.2s; }
+.more-link:hover { background: #1677ff; color: #fff; border-color: #1677ff; }
+.more-link:focus-visible { outline: 3px solid rgba(22, 119, 255, 0.25); outline-offset: 2px; }
 
 .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .span-6 .product-grid { grid-template-columns: repeat(2, 1fr); }
