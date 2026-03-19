@@ -117,13 +117,16 @@
               进入环境
             </button>
             <button v-if="trial.status === 'RUNNING'" class="btn-action primary" @click="showFeedback(trial)">
-              提交反馈
+              试用后反馈
             </button>
             <button v-if="trial.status === 'RUNNING'" class="btn-action" @click="extendTrial(trial)">
               延长试用
             </button>
             <button v-if="trial.feedback" class="btn-action view-feedback" @click="viewFeedback(trial)">
               查看反馈
+            </button>
+            <button class="btn-action report" type="button" @click="downloadTrialReport(trial)">
+              下载试用报告
             </button>
           </div>
         </div>
@@ -482,6 +485,123 @@ function purchaseIntentText(v) {
   }
   return map[v] || v || '-'
 }
+
+function escapeHtml(input) {
+  return String(input ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function formatDateTime(dateStr) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr)
+  if (Number.isNaN(d.getTime())) return '-'
+  return d.toLocaleString('zh-CN')
+}
+
+function durationDays(startStr, endStr) {
+  if (!startStr || !endStr) return '-'
+  const start = new Date(startStr)
+  const end = new Date(endStr)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return '-'
+  const diff = Math.max(0, end.getTime() - start.getTime())
+  return `${Math.ceil(diff / (24 * 60 * 60 * 1000))} 天`
+}
+
+function safeFileName(name) {
+  return String(name || '')
+    .replaceAll(/[\\/:*?"<>|]/g, '-')
+    .replaceAll(/\s+/g, ' ')
+    .trim()
+    .slice(0, 80)
+}
+
+function downloadTrialReport(trial) {
+  const productName = getProductName(trial?.productId)
+  const title = `试用报告 - ${productName}`
+  const fb = trial?.feedback || null
+
+  const issues = String(fb?.issues || '')
+    .split(/\r?\n/)
+    .map(s => s.trim())
+    .filter(Boolean)
+
+  const reportHtml = `<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(title)}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; color: #111; padding: 28px; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    .sub { color: #666; font-size: 12px; margin-bottom: 18px; }
+    .card { border: 1px solid rgba(5,5,5,0.12); border-radius: 12px; padding: 16px; margin: 12px 0; }
+    .card h2 { font-size: 14px; margin: 0 0 10px; }
+    .grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 12px; font-size: 13px; }
+    .k { color: #666; }
+    .v { color: #111; word-break: break-word; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip { background: #f5f7fa; border: 1px solid rgba(5,5,5,0.10); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: #333; }
+    .muted { color: #999; font-size: 13px; }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 13px; line-height: 1.6; font-family: inherit; }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(title)}</h1>
+  <div class="sub">导出时间：${escapeHtml(new Date().toLocaleString('zh-CN'))}</div>
+
+  <div class="card">
+    <h2>试用概览</h2>
+    <div class="grid">
+      <div class="k">产品</div><div class="v">${escapeHtml(productName)}</div>
+      <div class="k">状态</div><div class="v">${escapeHtml(trial?.statusText || trial?.status || '-')}</div>
+      <div class="k">试用时间</div><div class="v">${escapeHtml(formatDateTime(trial?.startTime))} ~ ${escapeHtml(formatDateTime(trial?.endTime))}</div>
+      <div class="k">试用时长</div><div class="v">${escapeHtml(durationDays(trial?.startTime, trial?.endTime))}</div>
+      <div class="k">环境地址</div><div class="v">${escapeHtml(trial?.environmentUrl || '-')}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>关键操作 / 测试数据</h2>
+    ${trial?.testData ? `<pre>${escapeHtml(trial.testData)}</pre>` : `<div class="muted">暂无记录</div>`}
+  </div>
+
+  <div class="card">
+    <h2>反馈与评分</h2>
+    <div class="grid">
+      <div class="k">评分</div><div class="v">${escapeHtml(fb?.rating != null ? `${fb.rating}/5` : '-')}</div>
+      <div class="k">购买意向</div><div class="v">${escapeHtml(purchaseIntentText(fb?.purchaseIntent))}</div>
+      <div class="k">使用感受</div><div class="v">${fb?.feedback ? `<pre>${escapeHtml(fb.feedback)}</pre>` : `<span class="muted">暂无</span>`}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>问题清单</h2>
+    ${issues.length ? `<div class="chips">${issues.map(i => `<span class="chip">${escapeHtml(i)}</span>`).join('')}</div>` : `<div class="muted">暂无</div>`}
+  </div>
+
+  <div class="card">
+    <h2>处理回复</h2>
+    ${fb?.providerReply ? `<pre>${escapeHtml(fb.providerReply)}</pre>` : `<div class="muted">暂无</div>`}
+  </div>
+</body>
+</html>`
+
+  const blob = new Blob([reportHtml], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  const ts = new Date().toISOString().slice(0, 10)
+  a.download = `${safeFileName(`试用报告-${productName}-${ts}`) || '试用报告'}.html`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}
 </script>
 
 <style scoped>
@@ -547,6 +667,8 @@ function purchaseIntentText(v) {
 .btn-action:hover { border-color: #0066ff; color: #0066ff; }
 .btn-action.primary { background: #0066ff; color: #fff; border-color: #0066ff; }
 .btn-action.view-feedback { background: #f5f7fa; }
+.btn-action.report { border-color: rgba(22, 119, 255, 0.35); background: rgba(22, 119, 255, 0.06); color: #1677ff; font-weight: 700; }
+.btn-action.report:hover { border-color: #1677ff; background: #1677ff; color: #fff; }
 
 .empty-state { text-align: center; padding: 60px; background: #fff; border-radius: 12px; }
 .empty-icon { font-size: 48px; margin-bottom: 16px; }
