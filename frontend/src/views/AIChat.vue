@@ -129,11 +129,24 @@
           </div>
         </div>
         
+        <div v-if="embedded" class="chat-quickbar">
+          <button
+            v-for="q in embeddedQuickQuestions"
+            :key="q"
+            class="quick-chip"
+            type="button"
+            @click="sendMessage(q)"
+            :disabled="loading"
+          >
+            {{ q }}
+          </button>
+        </div>
+
         <div class="chat-input">
           <input 
             v-model="inputMessage" 
             type="text" 
-            placeholder="请描述您的需求，如：我是物流企业，需要仓储管理解决方案"
+            placeholder="请描述您的需求..."
             @keyup.enter="sendMessage()"
             :disabled="loading"
           />
@@ -177,6 +190,13 @@ const quickQuestions = [
   '电商订单管理系统推荐',
   '供应链数字化转型',
   '中小型企业性价比方案'
+]
+
+const embeddedQuickQuestions = [
+  '有哪些热门产品推荐？',
+  '我想快速选一个适合我的产品',
+  '价格/版本怎么选？',
+  '推荐可直接试用的产品'
 ]
 
 onMounted(() => {
@@ -326,6 +346,11 @@ function collectRecommendedProductIds(data) {
 .messages { flex: 1; overflow-y: auto; padding: 12px; }
 .messages { min-height: 0; }
 
+.chat-quickbar { padding: 10px 12px; display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid rgba(5, 5, 5, 0.06); box-shadow: 0 -10px 18px rgba(0, 0, 0, 0.04); background: #fff; }
+.quick-chip { padding: 8px 12px; background: #fff; border: 1px solid rgba(22, 119, 255, 0.35); color: #1677ff; border-radius: 999px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+.quick-chip:hover { background: rgba(22, 119, 255, 0.06); border-color: #1677ff; }
+.quick-chip:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .message { display: flex; gap: 6px; margin-bottom: 20px; }
 .message-avatar { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 50%; font-size: 18px; flex-shrink: 0; }
 .message.user { flex-direction: row-reverse; }
@@ -385,7 +410,7 @@ function collectRecommendedProductIds(data) {
 }
 
 .chat-input { padding: 16px 12px; border-top: 1px solid #f0f0f0; display: flex; gap: 12px; }
-.chat-input input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+.chat-input input { flex: 1; padding: 8px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
 .chat-input input:focus { outline: none; border-color: #0066ff; }
 .chat-input button { padding: 12px 24px; background: #0066ff; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
 .chat-input button:disabled { background: #ccc; cursor: not-allowed; }

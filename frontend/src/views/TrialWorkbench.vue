@@ -116,7 +116,7 @@
             <button v-if="trial.status === 'RUNNING'" class="btn-action" @click="openEnvironment(trial)">
               进入环境
             </button>
-            <button v-if="trial.status === 'RUNNING'" class="btn-action primary" @click="showFeedback(trial)">
+            <button v-if="trial.status === 'RUNNING'" class="btn-action report" @click="showFeedback(trial)">
               试用后反馈
             </button>
             <button v-if="trial.status === 'RUNNING'" class="btn-action" @click="extendTrial(trial)">
