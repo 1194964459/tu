@@ -503,7 +503,7 @@ function purchaseIntentText(v) {
 
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .section-header h2 { font-size: 20px; }
-.btn-new { height: 40px; padding: 0 18px; background: #1677ff; color: #fff; border: 1px solid #1677ff; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 800; box-shadow: 0 10px 22px rgba(22, 119, 255, 0.22); transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
+.btn-new { height: 40px; padding: 0 18px; background: #1677ff; color: #fff; border: 1px solid #1677ff; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 800; box-shadow: 0 10px 22px rgba(22, 119, 255, 0.22); transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
 .btn-new:hover { transform: translateY(-1px); background: #0958d9; border-color: #0958d9; box-shadow: 0 14px 26px rgba(22, 119, 255, 0.26); }
 .btn-new:active { transform: translateY(0); box-shadow: 0 10px 22px rgba(22, 119, 255, 0.18); }
 .btn-new:focus-visible { outline: 3px solid rgba(22, 119, 255, 0.25); outline-offset: 2px; }
