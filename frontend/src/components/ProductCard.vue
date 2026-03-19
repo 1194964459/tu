@@ -7,27 +7,35 @@
     <h3 class="product-name">{{ product.name }}</h3>
     <p v-if="product.description" class="product-desc">{{ product.description }}</p>
     <div v-if="capabilityText || scenarioText" class="product-tags">
-      <span v-if="capabilityText" class="tag">能力: {{ capabilityText }}</span>
-      <span v-if="scenarioText" class="tag">场景: {{ scenarioText }}</span>
+      <div v-if="capabilityText" class="tag-row">
+        <span class="tag-label">能力：</span>
+        <span class="tag-value">{{ capabilityText }}</span>
+      </div>
+      <div v-if="scenarioText" class="tag-row">
+        <span class="tag-label">场景：</span>
+        <span class="tag-value">{{ scenarioText }}</span>
+      </div>
     </div>
     <div class="product-footer">
       <span v-if="product.price != null" class="product-price">¥{{ product.price }}万起</span>
-      <button
-        v-if="product.externalDemoUrl"
-        class="btn-external"
-        type="button"
-        @click.stop="openExternal"
-      >
-        外部体验
-      </button>
-      <button
-        v-if="showTry"
-        class="btn-try"
-        type="button"
-        @click.stop="emit('try', product)"
-      >
-        立即试用
-      </button>
+      <div class="product-actions">
+        <button
+          v-if="product.externalDemoUrl"
+          class="btn-external"
+          type="button"
+          @click.stop="openExternal"
+        >
+          外部体验
+        </button>
+        <button
+          v-if="showTry"
+          class="btn-try"
+          type="button"
+          @click.stop="emit('try', product)"
+        >
+          立即试用
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -124,19 +132,15 @@ const scenarioText = computed(() => {
 
 .product-tags {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   margin-top: auto;
   margin-bottom: 12px;
 }
 
-.tag {
-  font-size: 12px;
-  color: #999;
-  background: #f5f7fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
+.tag-row { display: flex; align-items: flex-start; }
+.tag-label { flex-shrink: 0; font-size: 12px; color: #666; background: #f9fafb;padding: 3px 8px; line-height: 18px; }
+.tag-value { font-size: 12px; color: #999; background: #f9fafb; padding: 3px 0; border-radius: 6px; line-height: 18px; }
 
 .product-footer {
   display: flex;
@@ -151,9 +155,16 @@ const scenarioText = computed(() => {
   white-space: nowrap;
 }
 
+.product-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .btn-try {
   padding: 8px 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1677ff;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -163,14 +174,14 @@ const scenarioText = computed(() => {
 }
 
 .btn-try:hover {
-  opacity: 0.9;
+  background: #0958d9;
 }
 
 .btn-external {
   padding: 8px 14px;
-  background: #f5f7fa;
-  color: #333;
-  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #1677ff;
+  border: 1px solid rgba(22, 119, 255, 0.5);
   border-radius: 8px;
   cursor: pointer;
   font-size: 12px;
@@ -178,7 +189,8 @@ const scenarioText = computed(() => {
 }
 
 .btn-external:hover {
-  border-color: #0066ff;
-  color: #0066ff;
+  border-color: #1677ff;
+  color: #1677ff;
+  background: rgba(22, 119, 255, 0.06);
 }
 </style>
