@@ -152,7 +152,7 @@ function rebuildPortal() {
   const aiRec = readAiRecommendations()
   const aiProducts = aiRec?.productIds?.length ? pickByIds(allProducts.value, aiRec.productIds).slice(0, 8) : []
   if (aiProducts.length) {
-    blocks.push({ id: 'ai', type: 'products', title: '为你推荐', span: 12, products: aiProducts })
+    blocks.push({ id: 'ai', type: 'products', title: '为您推荐', span: 12, products: aiProducts })
   }
 
   const guess = buildGuessProducts(allProducts.value, {

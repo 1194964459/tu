@@ -105,13 +105,14 @@
           <div class="row-actions">
             <button v-if="product.externalDemoUrl" class="row-btn ghost" type="button" @click.stop="openExternal(product)">外部体验</button>
             <button class="row-btn" type="button" @click.stop="startTrial(product)">立即试用</button>
-            <button class="row-btn icon" type="button" :aria-label="isFavorite(product) ? '取消收藏' : '收藏'" @click.stop="toggleFav(product)">
+            <button class="row-btn fav" :class="{ active: isFavorite(product) }" type="button"  @click.stop="toggleFav(product)">
               <svg v-if="isFavorite(product)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
               </svg>
               <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
               </svg>
+              <!-- <span class="fav-text">{{ isFavorite(product) ? '已收藏' : '收藏' }}</span> -->
             </button>
           </div>
         </div>
@@ -347,8 +348,10 @@ function granularityLabel(v) {
 .row-btn:hover { background: #0958d9; border-color: #0958d9; }
 .row-btn.ghost { background: #fff; color: #1677ff; border-color: rgba(22, 119, 255, 0.5); }
 .row-btn.ghost:hover { background: rgba(22, 119, 255, 0.06); border-color: #1677ff; color: #1677ff; }
-.row-btn.icon { width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-color: rgba(5, 5, 5, 0.14); background: #fff; color: #ff4d4f; }
-.row-btn.icon:hover { background: rgba(255, 77, 79, 0.06); border-color: rgba(255, 77, 79, 0.4); }
+.row-btn.fav { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; border-color: #e0e0e0; background: #f5f7fa; color: #333; padding: 0 9px; }
+.row-btn.fav:hover { background: rgba(22, 119, 255, 0.06); border-color: rgba(22, 119, 255, 0.5); color: #1677ff; }
+.row-btn.fav.active { background: rgba(255, 77, 79, 0.08); border-color: rgba(255, 77, 79, 0.45); color: #ff4d4f; }
+.fav-text { font-size: 13px; font-weight: 600; }
 
 .empty-state { text-align: center; padding: 60px; color: #999; }
 

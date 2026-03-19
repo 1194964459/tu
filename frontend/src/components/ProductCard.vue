@@ -4,14 +4,6 @@
       <span class="product-category">{{ product.category }}</span>
       <div class="product-top-right">
         <span v-if="product.popularity != null" class="product-popularity">🔥 {{ product.popularity }}</span>
-        <button class="btn-fav" type="button" :aria-label="isFavorite ? '取消收藏' : '收藏'" @click.stop="toggleFav">
-          <svg v-if="isFavorite" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-          <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        </button>
       </div>
     </div>
     <h3 class="product-name">{{ product.name }}</h3>
@@ -44,6 +36,15 @@
           @click.stop="emit('try', product)"
         >
           立即试用
+        </button>
+        <button class="btn-fav" :class="{ active: isFavorite }" type="button" @click.stop="toggleFav">
+          <svg v-if="isFavorite" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+          <!-- <span class="btn-fav__text">{{ isFavorite ? '已收藏' : '收藏' }}</span> -->
         </button>
       </div>
     </div>
@@ -151,19 +152,22 @@ const scenarioText = computed(() => {
 }
 
 .btn-fav {
-  width: 28px;
-  height: 28px;
+  height: 32px;
+  padding: 0 9px;
   border-radius: 8px;
-  border: 1px solid rgba(5, 5, 5, 0.08);
-  background: #fff;
+  border: 1px solid #e0e0e0;
+  background: #f5f7fa;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #ff4d4f;
+  gap: 8px;
+  color: #333;
 }
 
-.btn-fav:hover { border-color: rgba(255, 77, 79, 0.5); background: rgba(255, 77, 79, 0.06); }
+.btn-fav:hover { border-color: rgba(22, 119, 255, 0.5); color: #1677ff; background: rgba(22, 119, 255, 0.06); }
+.btn-fav.active { border-color: rgba(255, 77, 79, 0.45); color: #ff4d4f; background: rgba(255, 77, 79, 0.08); }
+.btn-fav__text { font-size: 13px; font-weight: 600; line-height: 1; }
 
 .product-name {
   font-size: 16px;
@@ -230,7 +234,7 @@ const scenarioText = computed(() => {
 }
 
 .btn-external {
-  padding: 8px 14px;
+  padding: 8px 10px;
   background: #fff;
   color: #1677ff;
   border: 1px solid rgba(22, 119, 255, 0.5);
