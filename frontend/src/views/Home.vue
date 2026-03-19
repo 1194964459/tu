@@ -14,14 +14,14 @@
                 <h1 class="hero-title">发现最适合您的产品解决方案</h1>
                 <p class="hero-subtitle">AI 驱动的智能推荐，让选型变得更简单</p>
                 <div class="hero-actions">
-                  <button class="btn btn-primary" @click="$router.push('/ai-chat')">开始智能选型</button>
+                  <button class="btn btn-primary" @click="openAiDialog">开始智能选型</button>
                   <button class="btn btn-secondary" @click="$router.push('/products')">浏览产品库</button>
                 </div>
               </div>
             </div>
           </template>
 
-          <template v-else-if="block.type === 'entry'">
+          <!-- <template v-else-if="block.type === 'entry'">
             <div class="quick-entry">
               <div class="entry-card" @click="$router.push('/trial')">
                 <div class="entry-icon">🧪</div>
@@ -45,7 +45,7 @@
                 </div>
               </div>
             </div>
-          </template>
+          </template> -->
 
           <template v-else-if="block.type === 'products'">
             <div class="section">
@@ -64,7 +64,7 @@
             </div>
           </template>
 
-          <template v-else-if="block.type === 'categories'">
+          <!-- <template v-else-if="block.type === 'categories'">
             <div class="section">
               <div class="section-header">
                 <h2>{{ block.title }}</h2>
@@ -81,24 +81,8 @@
                 </button>
               </div>
             </div>
-          </template>
-
-          <!-- <template v-else-if="block.type === 'stats'">
-            <div class="stats-section">
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.totalProducts }}+</div>
-                <div class="stat-label">产品数量</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.totalTrials }}+</div>
-                <div class="stat-label">试用次数</div>
-              </div>
-              <div class="stat-item">
-                <div class="stat-value">{{ stats.satisfaction }}%</div>
-                <div class="stat-label">用户满意度</div>
-              </div>
-            </div>
           </template> -->
+
         </section>
       </div>
     </div>
@@ -117,6 +101,10 @@ const popularProducts = ref([])
 const portalBlocks = ref([])
 const stats = ref({ totalProducts: 6, totalTrials: 150, satisfaction: 92 })
 const router = useRouter()
+
+function openAiDialog() {
+  window.dispatchEvent(new CustomEvent('demo-open-ai-chat'))
+}
 
 onMounted(async () => {
   initPortal()

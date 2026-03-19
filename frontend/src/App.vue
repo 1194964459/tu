@@ -34,7 +34,9 @@
       <div v-if="aiChatOpen && aiChatCollapsed" class="ai-mini" role="dialog" aria-label="AI 顾问">
         <div class="ai-mini__header">
           <div class="ai-mini__title">
-            <span class="ai-mini__title-icon" aria-hidden="true">✨</span>
+            <span class="ai-mini__title-icon" aria-hidden="true">
+              <img class="ai-robot" :src="robotIcon" alt="" />
+            </span>
             <div class="ai-mini__title-text">
               <div class="ai-mini__title-main">智能助手</div>
               <div class="ai-mini__title-sub">24 小时在线服务</div>
@@ -62,7 +64,9 @@
       <div v-else-if="aiChatOpen" class="ai-panel" role="dialog" aria-label="AI 顾问">
         <div class="ai-panel__header">
           <div class="ai-panel__title">
-            <span class="ai-panel__title-icon" aria-hidden="true">🤖</span>
+            <span class="ai-panel__title-icon" aria-hidden="true">
+              <img class="ai-robot" :src="robotIcon" alt="" />
+            </span>
             <span>AI 智能顾问</span>
           </div>
           <div class="ai-panel__actions">
@@ -90,7 +94,9 @@
       <div v-if="aiGuideVisible && !aiChatOpen" class="ai-guide" role="note" aria-label="AI 助手引导">
         <div class="ai-guide__header">
           <div class="ai-guide__title">
-            <span class="ai-guide__title-icon" aria-hidden="true">✨</span>
+            <span class="ai-guide__title-icon" aria-hidden="true">
+              <img class="ai-robot" :src="robotIcon" alt="" />
+            </span>
             <div class="ai-guide__title-text">
               <div class="ai-guide__title-main">智能助手</div>
               <div class="ai-guide__title-sub">24 小时在线服务</div>
@@ -118,7 +124,9 @@
         aria-label="打开 AI 顾问"
         @click="openAiChat"
       >
-        <span class="ai-bubble__icon" aria-hidden="true">🤖</span>
+        <span class="ai-bubble__icon" aria-hidden="true">
+          <img class="ai-robot" :src="robotIcon" alt="" />
+        </span>
         <span class="ai-bubble__text">AI 顾问</span>
         <span class="ai-bubble__dot" aria-hidden="true"></span>
       </button>
@@ -225,9 +233,10 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, nextTick } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, nextTick } from 'vue'
 import AIChat from './views/AIChat.vue'
 import { useRouter } from 'vue-router'
+import robotIcon from '@/assets/icons/robot.png'
 
 const USERS_KEY = 'demo-platform-users'
 const SESSION_KEY = 'demo-platform-session'
@@ -260,12 +269,26 @@ const aiGuideVisible = ref(true)
 
 const router = useRouter()
 
+const openAiChatEventHandler = (e) => {
+  openAiChat()
+  const msg = e?.detail?.message
+  if (!msg) return
+  nextTick(() => {
+    aiChatRef.value?.sendMessage?.(msg)
+  })
+}
+
 onMounted(() => {
   aiGuideVisible.value = true
+  window.addEventListener('demo-open-ai-chat', openAiChatEventHandler)
   const session = readSession()
   if (!session?.account) return
   const u = findUser(session.account)
   if (u) currentUser.value = sanitizeUser(u)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('demo-open-ai-chat', openAiChatEventHandler)
 })
 
 function openAiChat() {
@@ -590,6 +613,7 @@ textarea::placeholder,
 .ai-bubble__icon { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.16); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
 .ai-bubble__text { font-weight: 700; font-size: 14px; letter-spacing: 0.5px; white-space: nowrap; }
 .ai-bubble__dot { width: 10px; height: 10px; border-radius: 50%; background: #52c41a; box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.6); animation: aiPulse 1.6s infinite; }
+.ai-robot { width: 20px; height: 20px; display: block; object-fit: contain; }
 
 @keyframes aiPulse {
   0% { box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.55); }
@@ -614,9 +638,9 @@ textarea::placeholder,
 .ai-panel__body :deep(.chat-main) { min-height: 0; }
 .ai-panel__body :deep(.messages) { min-height: 0; }
 
-.ai-guide { width: 380px; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); background: #fff; position: relative; }
+.ai-guide { width: 300px; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); background: #fff; position: relative; }
 .ai-guide::after { content: ""; position: absolute; right: 28px; bottom: -10px; width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid #fff; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.12)); }
-.ai-guide__header { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #ffa940 55%); color: #fff; }
+.ai-guide__header { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #f79319); color: #fff; }
 .ai-guide__title { display: inline-flex; align-items: center; gap: 10px; }
 .ai-guide__title-icon { width: 34px; height: 34px; border-radius: 12px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
 .ai-guide__title-text { display: flex; flex-direction: column; line-height: 1.1; }
@@ -628,7 +652,7 @@ textarea::placeholder,
 .ai-guide__chips { display: flex; gap: 10px; flex-wrap: wrap; }
 
 .ai-mini { width: 380px; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); background: #fff; }
-.ai-mini__header { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #ffa940 55%); color: #fff; }
+.ai-mini__header { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #f79319); color: #fff; }
 .ai-mini__title { display: inline-flex; align-items: center; gap: 10px; }
 .ai-mini__title-icon { width: 34px; height: 34px; border-radius: 12px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
 .ai-mini__title-text { display: flex; flex-direction: column; line-height: 1.1; }
@@ -638,7 +662,7 @@ textarea::placeholder,
 .ai-mini__header .ai-icon-btn { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.22); color: #fff; }
 .ai-mini__header .ai-icon-btn:hover { border-color: rgba(255,255,255,0.8); color: #fff; }
 
-.ai-chip { padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(5, 5, 5, 0.08); background: #f7f8fb; cursor: pointer; font-size: 13px; font-weight: 700; color: #ff2e63; }
+.ai-chip { padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(5, 5, 5, 0.08); background: #f7f8fb; cursor: pointer; font-size: 12px; font-weight: 700; color: #ff2e63; }
 .ai-chip:hover { border-color: rgba(255, 46, 99, 0.5); background: rgba(255, 46, 99, 0.08); }
 
 @media (max-width: 720px) {

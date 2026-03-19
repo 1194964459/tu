@@ -2,7 +2,10 @@
   <div class="ai-chat" :class="{ embedded }">
     <div class="chat-container" :class="{ compact: !showSidebar }">
       <div v-if="showSidebar" class="chat-sidebar">
-        <h3>💡 AI 智能顾问</h3>
+        <h3 class="chat-title">
+          <img class="robot-icon" :src="robotIcon" alt="" />
+          <span>AI 智能顾问</span>
+        </h3>
         <p class="chat-intro">告诉我您的需求，AI 将为您推荐合适的产品和方案</p>
         
         <div class="quick-questions">
@@ -24,7 +27,8 @@
         <div class="messages" ref="messagesRef">
           <div v-for="(msg, index) in messages" :key="index" class="message" :class="msg.role">
             <div class="message-avatar">
-              {{ msg.role === 'user' ? '👤' : '🤖' }}
+              <template v-if="msg.role === 'user'">👤</template>
+              <img v-else class="robot-icon" :src="robotIcon" alt="" />
             </div>
             <div class="message-content">
               <div class="message-text" v-html="formatMessage(msg.content)"></div>
@@ -112,7 +116,9 @@
           </div>
           
           <div v-if="loading" class="message assistant">
-            <div class="message-avatar">🤖</div>
+            <div class="message-avatar">
+              <img class="robot-icon" :src="robotIcon" alt="" />
+            </div>
             <div class="message-content">
               <div class="typing">
                 <span class="dot"></span>
@@ -145,6 +151,7 @@ import { ref, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { aiAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
+import robotIcon from '@/assets/icons/robot.png'
 
 defineProps({
   embedded: { type: Boolean, default: false },
@@ -156,7 +163,7 @@ defineExpose({ sendMessage })
 const messages = ref([
   {
     role: 'assistant',
-    content: '您好！我是您的智能选型顾问 🤖\n\n为了给您推荐最合适的产品和方案，请告诉我：\n1. 您所在的行业\n2. 您希望解决的问题或场景\n3. 您的预算范围'
+    content: '您好！我是您的智能选型顾问\n\n为了给您推荐最合适的产品和方案，请告诉我：\n1. 您所在的行业\n2. 您希望解决的问题或场景\n3. 您的预算范围'
   }
 ])
 const inputMessage = ref('')
@@ -278,7 +285,8 @@ function chooseBundle(bundle) {
 .chat-container { min-height: 0; }
 
 .chat-sidebar { background: #fff; border-radius: 12px; padding: 24px; height: fit-content; }
-.chat-sidebar h3 { font-size: 18px; margin-bottom: 12px; }
+.chat-title { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; margin-bottom: 12px; }
+.robot-icon { width: 22px; height: 22px; display: block; object-fit: contain; }
 .chat-intro { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
 
 .quick-questions h4 { font-size: 14px; margin-bottom: 12px;  margin-top: 60px; }
