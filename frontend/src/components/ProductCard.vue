@@ -2,7 +2,17 @@
   <div class="product-card" role="button" tabindex="0" @click="emit('select', product)" @keydown.enter="emit('select', product)">
     <div class="product-top">
       <span class="product-category">{{ product.category }}</span>
-      <span v-if="product.popularity != null" class="product-popularity">🔥 {{ product.popularity }}</span>
+      <div class="product-top-right">
+        <span v-if="product.popularity != null" class="product-popularity">🔥 {{ product.popularity }}</span>
+        <button class="btn-fav" type="button" :aria-label="isFavorite ? '取消收藏' : '收藏'" @click.stop="toggleFav">
+          <svg v-if="isFavorite" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        </button>
+      </div>
     </div>
     <h3 class="product-name">{{ product.name }}</h3>
     <p v-if="product.description" class="product-desc">{{ product.description }}</p>
@@ -35,13 +45,22 @@
         >
           立即试用
         </button>
+        <button
+          v-if="showTry"
+          class="btn-pick"
+          type="button"
+          @click.stop="togglePick"
+        >
+          {{ isPicked ? '已加入' : '加入工作台' }}
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { readFavorites, readSelectedProducts, toggleFavorite, toggleSelectedProduct } from '../lib/productPrefs'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -50,10 +69,43 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'try'])
 
+const prefsVersion = ref(0)
+
+const favorites = computed(() => {
+  prefsVersion.value
+  return readFavorites()
+})
+const picked = computed(() => {
+  prefsVersion.value
+  return readSelectedProducts()
+})
+const isFavorite = computed(() => favorites.value.includes(Number(props.product?.id)))
+const isPicked = computed(() => picked.value.includes(Number(props.product?.id)))
+
+const onPrefsChanged = () => {
+  prefsVersion.value += 1
+}
+
+onMounted(() => {
+  window.addEventListener('demo-product-prefs-changed', onPrefsChanged)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('demo-product-prefs-changed', onPrefsChanged)
+})
+
 function openExternal() {
   const url = props.product?.externalDemoUrl
   if (!url) return
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function toggleFav() {
+  toggleFavorite(props.product?.id)
+}
+
+function togglePick() {
+  toggleSelectedProduct(props.product?.id)
 }
 
 const capabilityText = computed(() => {
@@ -96,6 +148,8 @@ const scenarioText = computed(() => {
   gap: 12px;
 }
 
+.product-top-right { display: inline-flex; align-items: center; gap: 10px; }
+
 .product-category {
   font-size: 12px;
   color: #0066ff;
@@ -112,6 +166,21 @@ const scenarioText = computed(() => {
   font-size: 12px;
   white-space: nowrap;
 }
+
+.btn-fav {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(5, 5, 5, 0.08);
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff4d4f;
+}
+
+.btn-fav:hover { border-color: rgba(255, 77, 79, 0.5); background: rgba(255, 77, 79, 0.06); }
 
 .product-name {
   font-size: 16px;
@@ -176,6 +245,19 @@ const scenarioText = computed(() => {
 .btn-try:hover {
   background: #0958d9;
 }
+
+.btn-pick {
+  padding: 8px 14px;
+  background: #fff;
+  color: #333;
+  border: 1px solid rgba(5, 5, 5, 0.16);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.btn-pick:hover { border-color: #1677ff; color: #1677ff; background: rgba(22, 119, 255, 0.06); }
 
 .btn-external {
   padding: 8px 14px;

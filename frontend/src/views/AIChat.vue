@@ -152,6 +152,7 @@ import { useRouter } from 'vue-router'
 import { aiAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
 import robotIcon from '@/assets/icons/robot.png'
+import { writeAiRecommendations } from '../lib/productPrefs'
 
 defineProps({
   embedded: { type: Boolean, default: false },
@@ -183,9 +184,10 @@ onMounted(() => {
 })
 
 async function sendMessage(text = inputMessage.value) {
-  if (!text.trim() || loading.value) return
+  const normalizedText = typeof text === 'string' ? text : inputMessage.value
+  if (!String(normalizedText || '').trim() || loading.value) return
   
-  const userMessage = text.trim()
+  const userMessage = String(normalizedText || '').trim()
   inputMessage.value = ''
   
   messages.value.push({ role: 'user', content: userMessage })
@@ -210,6 +212,10 @@ async function sendMessage(text = inputMessage.value) {
       requirements: data.requirements,
       nextQuestion: data.needsMoreInfo ? data.nextQuestion : null
     })
+    const productIds = collectRecommendedProductIds(data)
+    if (productIds.length) {
+      writeAiRecommendations({ productIds, requirements: data.requirements, time: Date.now() })
+    }
   } catch (e) {
     messages.value.push({
       role: 'assistant',
@@ -274,6 +280,27 @@ function chooseBundle(bundle) {
     time: Date.now()
   }))
 }
+
+function collectRecommendedProductIds(data) {
+  const ids = []
+  const list = data?.recommendedProducts
+  if (Array.isArray(list)) {
+    for (const p of list) {
+      if (p?.id != null) ids.push(Number(p.id))
+    }
+  }
+  const bundles = data?.bundles
+  if (Array.isArray(bundles)) {
+    for (const b of bundles) {
+      const products = b?.products
+      if (!Array.isArray(products)) continue
+      for (const p of products) {
+        if (p?.id != null) ids.push(Number(p.id))
+      }
+    }
+  }
+  return Array.from(new Set(ids.filter(n => Number.isFinite(n))))
+}
 </script>
 
 <style scoped>
@@ -318,8 +345,6 @@ function chooseBundle(bundle) {
 
 .recommend-section { margin-top: 12px; }
 .recommend-section h4 { font-size: 13px; color: #999; margin-bottom: 8px; }
-
-.product-grid {}
 
 .solution-list { display: flex; flex-direction: column; gap: 8px; }
 .solution-item { padding: 12px; background: #f9fafb; border-radius: 8px; }

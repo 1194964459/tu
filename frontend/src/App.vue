@@ -9,7 +9,7 @@
         <nav class="nav">
           <router-link to="/" class="nav-link" :class="{ active: $route.path === '/' }">首页</router-link>
           <router-link to="/products" class="nav-link" :class="{ active: $route.path.startsWith('/products') }">产品库</router-link>
-          <router-link to="/trial" class="nav-link" :class="{ active: $route.path === '/trial' }">试用工作台</router-link>
+          <router-link to="/trial" class="nav-link" :class="{ active: $route.path === '/trial' }">我的工作台</router-link>
           <router-link to="/admin" class="nav-link" :class="{ active: $route.path === '/admin' }">管理后台</router-link>
         </nav>
         <div class="user-info">

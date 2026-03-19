@@ -1,8 +1,8 @@
 <template>
   <div class="trial-workbench">
     <div class="page-header">
-      <h1>在线试用工作台</h1>
-      <p>体验产品功能，提交反馈，助力购买决策</p>
+      <h1>我的工作台</h1>
+      <p>收藏、加入清单、在线试用与反馈跟进</p>
     </div>
 
     <!-- 试用统计 -->
@@ -26,6 +26,44 @@
         <div class="stat-info">
           <div class="stat-value">{{ stats.averageRating || '-' }}</div>
           <div class="stat-label">平均评分</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>我的收藏与清单</h2>
+      </div>
+
+      <div class="pref-grid">
+        <div class="pref-col">
+          <div class="pref-title">收藏</div>
+          <div v-if="favoriteProducts.length" class="pref-products">
+            <ProductCard
+              v-for="p in favoriteProducts"
+              :key="p.id"
+              :product="p"
+              :showTry="true"
+              @select="goProduct"
+              @try="preselectTrial"
+            />
+          </div>
+          <div v-else class="pref-empty">暂无收藏</div>
+        </div>
+
+        <div class="pref-col">
+          <div class="pref-title">清单</div>
+          <div v-if="selectedProducts.length" class="pref-products">
+            <ProductCard
+              v-for="p in selectedProducts"
+              :key="p.id"
+              :product="p"
+              :showTry="true"
+              @select="goProduct"
+              @try="preselectTrial"
+            />
+          </div>
+          <div v-else class="pref-empty">暂无清单产品</div>
         </div>
       </div>
     </div>
@@ -193,9 +231,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, reactive, onMounted, onUnmounted, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { trialAPI, productAPI, feedbackAPI } from '../api'
+import ProductCard from '../components/ProductCard.vue'
+import { readFavorites, readSelectedProducts } from '../lib/productPrefs'
 
 const trials = ref([])
 const products = ref([])
@@ -204,8 +244,29 @@ const showNewTrial = ref(false)
 const showFeedbackModal = ref(false)
 const currentTrial = ref(null)
 const route = useRoute()
+const router = useRouter()
 const adminMode = computed(() => route.query.admin === '1')
 const feedbackEdits = reactive({})
+const prefsVersion = ref(0)
+
+const favoriteIds = computed(() => {
+  prefsVersion.value
+  return readFavorites()
+})
+const selectedIds = computed(() => {
+  prefsVersion.value
+  return readSelectedProducts()
+})
+
+const favoriteProducts = computed(() => {
+  const ids = new Set(favoriteIds.value.map(Number))
+  return products.value.filter(p => ids.has(Number(p.id))).slice(0, 8)
+})
+
+const selectedProducts = computed(() => {
+  const ids = new Set(selectedIds.value.map(Number))
+  return products.value.filter(p => ids.has(Number(p.id))).slice(0, 8)
+})
 
 const newTrial = reactive({
   productId: '',
@@ -235,6 +296,7 @@ const statusMap = {
 }
 
 onMounted(async () => {
+  window.addEventListener('demo-product-prefs-changed', onPrefsChanged)
   await loadData()
   
   // 检查是否有预选产品
@@ -259,11 +321,15 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  window.removeEventListener('demo-product-prefs-changed', onPrefsChanged)
+})
+
 async function loadData() {
   try {
     const [trialsRes, productsRes, statsRes] = await Promise.all([
       trialAPI.userTrials(1), // 默认用户ID
-      productAPI.popular(10),
+      productAPI.list(),
       trialAPI.stats()
     ])
     
@@ -294,6 +360,21 @@ async function loadData() {
   } catch (e) {
     console.error(e)
   }
+}
+
+function onPrefsChanged() {
+  prefsVersion.value += 1
+}
+
+function goProduct(product) {
+  if (!product?.id) return
+  router.push(`/products/${product.id}`)
+}
+
+function preselectTrial(product) {
+  if (!product?.id) return
+  newTrial.productId = String(product.id)
+  showNewTrial.value = true
 }
 
 function getProductName(productId) {
@@ -430,6 +511,12 @@ function purchaseIntentText(v) {
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .section-header h2 { font-size: 20px; }
 .btn-new { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+
+.pref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 10px; }
+.pref-col { background: #fff; border-radius: 12px; border: 1px solid rgba(5, 5, 5, 0.08); padding: 18px; }
+.pref-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: #1a1a2e; }
+.pref-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.pref-empty { padding: 16px; color: #999; background: #f9fafb; border-radius: 10px; text-align: center; }
 
 .trial-list { display: flex; flex-direction: column; gap: 16px; }
 .trial-card { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(5, 5, 5, 0.1);}

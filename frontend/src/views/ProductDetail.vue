@@ -81,6 +81,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { productAPI } from '../api'
+import { addViewedProduct } from '../lib/productPrefs'
 
 const route = useRoute()
 const product = ref(null)
@@ -90,6 +91,7 @@ onMounted(async () => {
   try {
     const res = await productAPI.detail(route.params.id)
     product.value = res.data.data
+    if (product.value?.id != null) addViewedProduct(product.value.id)
     relatedProducts.value = res.data.relatedProducts || []
   } catch (e) {
     console.error(e)

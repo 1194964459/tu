@@ -94,6 +94,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { productAPI, trialAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
+import { addViewedProduct, readAiRecommendations, readFavorites, readSelectedProducts, readViewedProducts } from '../lib/productPrefs'
 
 const allProducts = ref([])
 const categories = ref([])
@@ -134,73 +135,79 @@ onMounted(async () => {
 
 function openProduct(product) {
   if (!product?.id) return
+  addViewedProduct(product.id)
   router.push(`/products/${product.id}`)
 }
 
 function initPortal() {
   portalBlocks.value = [
     { id: 'hero', type: 'hero', span: 12 },
-    { id: 'entry', type: 'entry', span: 12 },
-    { id: 'stats', type: 'stats', span: 12 }
+    { id: 'popular', type: 'products', title: '热门产品', span: 12, products: popularProducts.value.slice(0, 8) }
   ]
 }
 
 function rebuildPortal() {
-  const pickedCategories = pickCategories(categories.value, 3)
+  const blocks = [{ id: 'hero', type: 'hero', span: 12 }]
 
-  const categoryBlocks = pickedCategories
-    .map((cat) => {
-      const products = allProducts.value
-        .filter(p => p.category === cat)
-        .slice()
-        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-        .slice(0, 4)
-      if (!products.length) return null
-      return {
-        id: `cat-${cat}`,
-        type: 'products',
-        title: `${cat}精选`,
-        span: 6,
-        products
-      }
-    })
-    .filter(Boolean)
+  const aiRec = readAiRecommendations()
+  const aiProducts = aiRec?.productIds?.length ? pickByIds(allProducts.value, aiRec.productIds).slice(0, 8) : []
+  if (aiProducts.length) {
+    blocks.push({ id: 'ai', type: 'products', title: '为你推荐', span: 12, products: aiProducts })
+  }
 
-  portalBlocks.value = [
-    { id: 'hero', type: 'hero', span: 12 },
-    { id: 'entry', type: 'entry', span: 12 },
-    { id: 'popular', type: 'products', title: '热门产品', span: 12, products: popularProducts.value.slice(0, 8) },
-    { id: 'categories', type: 'categories', title: '热门分类', span: 12, categories: categories.value.slice(0, 12) },
-    // ...shuffle(categoryBlocks, todaySeed()),
-    // { id: 'stats', type: 'stats', span: 12 }
-  ]
+  const guess = buildGuessProducts(allProducts.value, {
+    favorites: readFavorites(),
+    selected: readSelectedProducts(),
+    viewed: readViewedProducts(),
+    exclude: aiRec?.productIds || []
+  })
+  if (guess.length) {
+    blocks.push({ id: 'guess', type: 'products', title: '猜你喜欢', span: 12, products: guess.slice(0, 8) })
+  }
+
+  blocks.push({ id: 'popular', type: 'products', title: '热门产品', span: 12, products: popularProducts.value.slice(0, 8) })
+  portalBlocks.value = blocks
 }
 
-function pickCategories(list, count) {
-  const cleaned = Array.from(new Set((list || []).filter(Boolean).map(String)))
-  return shuffle(cleaned, todaySeed()).slice(0, count)
+function pickByIds(list, ids) {
+  const map = new Map((list || []).map(p => [Number(p?.id), p]))
+  const result = []
+  for (const id of ids || []) {
+    const n = Number(id)
+    const p = map.get(n)
+    if (p) result.push(p)
+  }
+  return result
 }
 
-function todaySeed() {
-  const d = new Date()
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
-}
+function buildGuessProducts(list, { favorites, selected, viewed, exclude }) {
+  const sourceIds = Array.from(new Set([...(favorites || []), ...(selected || []), ...(viewed || [])].map(Number).filter(Number.isFinite)))
+  const excluded = new Set([...(exclude || []), ...sourceIds].map(Number).filter(Number.isFinite))
 
-function shuffle(items, seedText) {
-  const arr = (items || []).slice()
-  let seed = 0
-  for (let i = 0; i < String(seedText).length; i++) {
-    seed = (seed * 31 + String(seedText).charCodeAt(i)) >>> 0
+  const categoryScore = new Map()
+  const byId = new Map((list || []).map(p => [Number(p?.id), p]))
+  for (const id of sourceIds) {
+    const p = byId.get(id)
+    const c = String(p?.category || '')
+    if (!c) continue
+    categoryScore.set(c, (categoryScore.get(c) || 0) + 1)
   }
-  function next() {
-    seed = (seed * 1664525 + 1013904223) >>> 0
-    return seed / 2 ** 32
-  }
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(next() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  }
-  return arr
+  const topCategories = Array.from(categoryScore.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([c]) => c)
+    .slice(0, 3)
+
+  const candidates = (list || []).filter(p => {
+    const id = Number(p?.id)
+    if (!Number.isFinite(id) || excluded.has(id)) return false
+    if (!topCategories.length) return true
+    return topCategories.includes(String(p?.category || ''))
+  })
+
+  return candidates
+    .slice()
+    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+    .slice(0, 12)
 }
 </script>
 
