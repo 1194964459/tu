@@ -632,8 +632,8 @@ textarea::placeholder,
     background: rgba(255, 255, 255, 0.16);
     color: #fff;
 }
-.ai-icon-btn:hover { border-color: #1677ff; color: #1677ff; }
-.ai-icon-btn.danger:hover { border-color: #ff4d4f; color: #ff4d4f; }
+.ai-icon-btn:hover { border-color: #fff; }
+.ai-icon-btn.danger:hover { border-color: #fff; }
 
 .ai-panel__body { flex: 1; min-height: 0; overflow: hidden; background: #f6f7fb; }
 .ai-panel__body :deep(.ai-chat) { height: 100%; }
