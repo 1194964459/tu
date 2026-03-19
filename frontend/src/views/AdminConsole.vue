@@ -9,7 +9,7 @@
     <a-tabs v-model:activeKey="activeTab" class="admin-tabs">
       <a-tab-pane key="trials" tab="试用需求">
       <div class="toolbar">
-        <a-input-search v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/能力/场景" />
+        <input v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/能力/场景" />
         <button class="btn-refresh" type="button" :disabled="loading" @click="loadTrials">
           {{ loading ? '加载中...' : '查找' }}
         </button>
