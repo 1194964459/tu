@@ -38,7 +38,7 @@
               <img class="ai-robot" :src="robotIcon" alt="" />
             </span>
             <div class="ai-mini__title-text">
-              <div class="ai-mini__title-main">智能助手</div>
+              <div class="ai-mini__title-main">AI智能顾问</div>
               <div class="ai-mini__title-sub">24 小时在线服务</div>
             </div>
           </div>
@@ -98,7 +98,7 @@
               <img class="ai-robot" :src="robotIcon" alt="" />
             </span>
             <div class="ai-guide__title-text">
-              <div class="ai-guide__title-main">智能助手</div>
+              <div class="ai-guide__title-main">AI智能顾问</div>
               <div class="ai-guide__title-sub">24 小时在线服务</div>
             </div>
           </div>
@@ -621,18 +621,21 @@ textarea::placeholder,
   100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); }
 }
 
-.ai-panel { width: 420px; height: 560px; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); display: flex; flex-direction: column; }
+.ai-panel { width: 420px; height: 650px; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); display: flex; flex-direction: column; }
 
-.ai-panel__header { height: 52px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(22,119,255,0.08) 0%, rgba(114,46,209,0.08) 100%); border-bottom: 1px solid rgba(5, 5, 5, 0.06); }
-.ai-panel__title { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: #ff4d4f; }
-.ai-panel__title-icon { width: 30px; height: 30px; border-radius: 10px; background: rgba(255, 77, 79, 0.12); display: inline-flex; align-items: center; justify-content: center; }
+.ai-panel__header { height: 52px; padding: 30px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #f79319); border-bottom: 1px solid rgba(5, 5, 5, 0.06); }
+.ai-panel__title { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: #ffffff; }
+.ai-panel__title-icon { width: 30px; height: 30px; border-radius: 10px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; }
 .ai-panel__actions { display: inline-flex; align-items: center; gap: 8px; }
 
-.ai-icon-btn { width: 32px; height: 32px; border-radius: 10px; border: 1px solid rgba(5, 5, 5, 0.12); background: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #333; }
+.ai-icon-btn { width: 32px; height: 32px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.22);  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;  
+    background: rgba(255, 255, 255, 0.16);
+    color: #fff;
+}
 .ai-icon-btn:hover { border-color: #1677ff; color: #1677ff; }
 .ai-icon-btn.danger:hover { border-color: #ff4d4f; color: #ff4d4f; }
 
-.ai-panel__body { flex: 1; min-height: 0; overflow: hidden; padding: 10px; background: #f6f7fb; }
+.ai-panel__body { flex: 1; min-height: 0; overflow: hidden; background: #f6f7fb; }
 .ai-panel__body :deep(.ai-chat) { height: 100%; }
 .ai-panel__body :deep(.chat-container) { height: 100%; min-height: 0; }
 .ai-panel__body :deep(.chat-main) { min-height: 0; }
@@ -651,8 +654,8 @@ textarea::placeholder,
 .ai-guide__body { padding: 14px; }
 .ai-guide__chips { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.ai-mini { width: 380px; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); background: #fff; }
-.ai-mini__header { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #f79319); color: #fff; }
+.ai-mini { width: 360px; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); background: #fff; }
+.ai-mini__header { padding: 24px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #f79319); color: #fff; }
 .ai-mini__title { display: inline-flex; align-items: center; gap: 10px; }
 .ai-mini__title-icon { width: 34px; height: 34px; border-radius: 12px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
 .ai-mini__title-text { display: flex; flex-direction: column; line-height: 1.1; }

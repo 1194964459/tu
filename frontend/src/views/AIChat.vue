@@ -326,7 +326,7 @@ function collectRecommendedProductIds(data) {
 .messages { flex: 1; overflow-y: auto; padding: 12px; }
 .messages { min-height: 0; }
 
-.message { display: flex; gap: 12px; margin-bottom: 20px; }
+.message { display: flex; gap: 6px; margin-bottom: 20px; }
 .message-avatar { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 50%; font-size: 18px; flex-shrink: 0; }
 .message.user { flex-direction: row-reverse; }
 .message.user .message-content { align-items: flex-end; }
@@ -335,7 +335,7 @@ function collectRecommendedProductIds(data) {
 
 .message-content { display: flex; flex-direction: column; gap: 8px; max-width: 70%; }
 .message-text { padding: 12px 16px; border-radius: 12px; line-height: 1.6; font-size: 14px; }
-.message.user .message-text { background: #0066ff; color: #fff; }
+.message.user .message-text { background: #a278de; color: #fff; }
 .message.assistant .message-text { background: #f5f7fa; color: #333; }
 
 .requirements { margin-top: 10px; }
@@ -380,7 +380,7 @@ function collectRecommendedProductIds(data) {
   30% { transform: translateY(-4px); }
 }
 
-.chat-input { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; gap: 12px; }
+.chat-input { padding: 16px 12px; border-top: 1px solid #f0f0f0; display: flex; gap: 12px; }
 .chat-input input { flex: 1; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
 .chat-input input:focus { outline: none; border-color: #0066ff; }
 .chat-input button { padding: 12px 24px; background: #0066ff; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
