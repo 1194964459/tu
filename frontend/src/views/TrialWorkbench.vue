@@ -372,12 +372,17 @@ function formatDate(dateStr) {
 
 async function createTrial() {
   try {
-    await trialAPI.create({
+    const productId = Number(newTrial.productId)
+    if (!Number.isFinite(productId)) throw new Error('请选择产品')
+
+    const payload = {
       userId: 1,
-      productId: parseInt(newTrial.productId),
-      solutionId: newTrial.solutionId,
+      productId,
       testData: newTrial.testData
-    })
+    }
+    if (newTrial.solutionId != null) payload.solutionId = Number(newTrial.solutionId)
+
+    await trialAPI.create(payload)
     
     showNewTrial.value = false
     newTrial.productId = ''
@@ -506,7 +511,7 @@ function purchaseIntentText(v) {
 .pref-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 32px; }
 .pref-col { background: #fff; border-radius: 12px; border: 1px solid rgba(5, 5, 5, 0.08); padding: 18px; }
 .pref-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: #1a1a2e; }
-.pref-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.pref-products { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .pref-empty { padding: 16px; color: #999; background: #f9fafb; border-radius: 10px; text-align: center; }
 
 .trial-list { display: flex; flex-direction: column; gap: 16px; }
