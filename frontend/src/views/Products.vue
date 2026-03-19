@@ -183,6 +183,7 @@ onMounted(async () => {
       productAPI.categories()
     ])
     products.value = productsRes.data.data || []
+    stats.value.totalProducts = Number(productsRes.data.total) || products.value.length || 0
     categories.value = catsRes.data.data || []
     syncCategoryFromQuery()
   } catch (e) {
@@ -329,7 +330,9 @@ function granularityLabel(v) {
 .view-btn.active { border-color: #1677ff; color: #1677ff; background: rgba(22, 119, 255, 0.06); }
 .view-btn.icon { width: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 
-.product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.product-grid { 
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; 
+}
 
 .product-list { display: flex; flex-direction: column; gap: 12px; }
 .product-row { background: #fff; border-radius: 12px; border: 1px solid rgba(5, 5, 5, 0.06); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 14px; cursor: pointer; }
@@ -356,8 +359,8 @@ function granularityLabel(v) {
 .empty-state { text-align: center; padding: 60px; color: #999; }
 
 
-.stats-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #fff; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 40px; }
-.stat-value { font-size: 36px; font-weight: 700; color: #667eea; }
+.stats-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #fff; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 40px; border: 1px solid rgba(5, 5, 5, 0.1);}
+.stat-value { font-size: 36px; font-weight: 700; color: #1677ff; }
 .stat-label { color: #666; margin-top: 8px; }
 
 @media (max-width: 1100px) {

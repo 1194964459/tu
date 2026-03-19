@@ -219,7 +219,7 @@ function buildGuessProducts(list, { favorites, viewed, exclude }) {
 .span-8 { grid-column: span 8; }
 .span-12 { grid-column: span 12; }
 
-.hero { text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; }
+.hero { text-align: center; padding: 60px 20px; background: linear-gradient(135deg, #1677ff 0, #667eea 100%); border-radius: 16px; }
 .hero-title { color: #fff; font-size: 36px; margin-bottom: 12px; }
 .hero-subtitle { color: rgba(255,255,255,0.9); font-size: 18px; margin-bottom: 32px; }
 .hero-actions { display: flex; gap: 16px; justify-content: center; }
@@ -248,10 +248,6 @@ function buildGuessProducts(list, { favorites, viewed, exclude }) {
 .category-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .category-chip { padding: 8px 14px; background: #fff; border-radius: 999px; border: 1px solid #e0e0e0; cursor: pointer; font-size: 13px; transition: all 0.2s; }
 .category-chip:hover { border-color: #0066ff; color: #0066ff; }
-
-.stats-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #fff; padding: 40px; border-radius: 12px; text-align: center; }
-.stat-value { font-size: 36px; font-weight: 700; color: #667eea; }
-.stat-label { color: #666; margin-top: 8px; }
 
 @media (max-width: 1100px) {
   .product-grid { grid-template-columns: repeat(2, 1fr); }
