@@ -62,7 +62,7 @@
           </div>
           <button v-if="product.externalDemoUrl" class="btn-primary" @click="openExternal">外部体验</button>
           <button v-else class="btn-primary" @click="startTrial">立即试用</button>
-          <button class="btn-secondary" @click="$router.push('/ai-chat')">咨询顾问</button>
+          <button class="btn-secondary" @click="consultAdvisor">咨询顾问</button>
         </div>
         
         <div v-if="relatedProducts.length" class="related-section">
@@ -105,6 +105,13 @@ function openExternal() {
   const url = product.value?.externalDemoUrl
   if (!url) return
   window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+function consultAdvisor() {
+  const p = product.value
+  const name = p?.name ? `“${p.name}”` : '该产品'
+  const message = `我想咨询 ${name}：\n- 适用场景有哪些？\n- 版本/价格怎么选？\n- 能否给出类似案例或落地建议？`
+  window.dispatchEvent(new CustomEvent('demo-open-ai-chat', { detail: { message } }))
 }
 </script>
 

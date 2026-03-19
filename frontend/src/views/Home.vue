@@ -171,8 +171,8 @@ function rebuildPortal() {
     { id: 'entry', type: 'entry', span: 12 },
     { id: 'popular', type: 'products', title: '热门产品', span: 12, products: popularProducts.value.slice(0, 8) },
     { id: 'categories', type: 'categories', title: '热门分类', span: 12, categories: categories.value.slice(0, 12) },
-    ...shuffle(categoryBlocks, todaySeed()),
-    { id: 'stats', type: 'stats', span: 12 }
+    // ...shuffle(categoryBlocks, todaySeed()),
+    // { id: 'stats', type: 'stats', span: 12 }
   ]
 }
 
