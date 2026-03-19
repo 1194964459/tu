@@ -94,7 +94,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { productAPI, trialAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
-import { addViewedProduct, readAiRecommendations, readFavorites, readSelectedProducts, readViewedProducts } from '../lib/productPrefs'
+import { addViewedProduct, readAiRecommendations, readFavorites, readViewedProducts } from '../lib/productPrefs'
 
 const allProducts = ref([])
 const categories = ref([])
@@ -157,7 +157,6 @@ function rebuildPortal() {
 
   const guess = buildGuessProducts(allProducts.value, {
     favorites: readFavorites(),
-    selected: readSelectedProducts(),
     viewed: readViewedProducts(),
     exclude: aiRec?.productIds || []
   })
@@ -180,8 +179,8 @@ function pickByIds(list, ids) {
   return result
 }
 
-function buildGuessProducts(list, { favorites, selected, viewed, exclude }) {
-  const sourceIds = Array.from(new Set([...(favorites || []), ...(selected || []), ...(viewed || [])].map(Number).filter(Number.isFinite)))
+function buildGuessProducts(list, { favorites, viewed, exclude }) {
+  const sourceIds = Array.from(new Set([...(favorites || []), ...(viewed || [])].map(Number).filter(Number.isFinite)))
   const excluded = new Set([...(exclude || []), ...sourceIds].map(Number).filter(Number.isFinite))
 
   const categoryScore = new Map()

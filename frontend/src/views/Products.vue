@@ -22,34 +22,58 @@
          
     <div class="product-toolbar">
       <div class="filters">
-        <button class="filter-btn" :class="{ active: selectedGroup === 'ALL' }" type="button" @click="setGroup('ALL')">全部</button>
+        <button class="filter-btn" :class="{ active: selectedGroup === 'ALL' }" type="button" @click="setGroup('ALL')" style="width:104px">全部：</button>
         <button class="filter-btn" :class="{ active: selectedGroup === 'BUSINESS' }" type="button" @click="setGroup('BUSINESS')">业务类</button>
         <button class="filter-btn" :class="{ active: selectedGroup === 'PUBLIC' }" type="button" @click="setGroup('PUBLIC')">公共服务</button>
       </div>
 
       <div class="filters">
-        <button class="filter-btn" :class="{ active: selectedGranularity === 'ALL' }" type="button" @click="selectedGranularity = 'ALL'">全部粒度</button>
+        <button class="filter-btn" :class="{ active: selectedGranularity === 'ALL' }" type="button" @click="selectedGranularity = 'ALL'">全部粒度：</button>
         <button class="filter-btn" :class="{ active: selectedGranularity === 'SYSTEM' }" type="button" @click="selectedGranularity = 'SYSTEM'">系统型</button>
         <button class="filter-btn" :class="{ active: selectedGranularity === 'MODULE' }" type="button" @click="selectedGranularity = 'MODULE'">模块型</button>
         <button class="filter-btn" :class="{ active: selectedGranularity === 'ATOMIC' }" type="button" @click="selectedGranularity = 'ATOMIC'">原子型</button>
       </div>
 
       <div class="filters">
-        <button class="filter-btn" :class="{ active: !selectedCategory }" type="button" @click="setCategory('')">全部分类</button>
+        <button class="filter-btn" :class="{ active: !selectedCategory }" type="button" @click="setCategory('')">全部分类：</button>
         <button v-for="cat in visibleCategories" :key="cat" class="filter-btn" type="button" :class="{ active: selectedCategory === cat }" @click="setCategory(cat)">
           {{ cat }}
         </button>
       </div>
     </div>
 
-    <!-- 搜索 -->
-    <div class="search-box">
-      <input v-model="keyword" type="text" placeholder="搜索产品..." class="search-input" @input="searchProducts" />
-    </div>
-
-    <div class="view-toolbar">
-      <button class="view-btn" :class="{ active: viewMode === 'card' }" type="button" @click="setViewMode('card')">卡片</button>
-      <button class="view-btn" :class="{ active: viewMode === 'list' }" type="button" @click="setViewMode('list')">列表</button>
+    <div class="search-module">
+      <!-- 视图切换 -->
+      <div class="view-toolbar">
+        <button class="view-btn icon" :class="{ active: viewMode === 'card' }" type="button" aria-label="网格视图" @click="setViewMode('card')">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h7v7H4z" />
+            <path d="M13 4h7v7h-7z" />
+            <path d="M4 13h7v7H4z" />
+            <path d="M13 13h7v7h-7z" />
+          </svg>
+        </button>
+        <button class="view-btn icon" :class="{ active: viewMode === 'list' }" type="button" aria-label="列表视图" @click="setViewMode('list')">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M8 6h13" />
+            <path d="M8 12h13" />
+            <path d="M8 18h13" />
+            <path d="M3 6h.01" />
+            <path d="M3 12h.01" />
+            <path d="M3 18h.01" />
+          </svg>
+        </button>
+      </div>
+      <!-- 搜索 -->
+      <div class="search-input-wrap">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3.2-3.2" />
+          </svg>
+        </span>
+        <input v-model="keyword" type="text" placeholder="搜索产品..." class="search-input" @input="searchProducts" />
+      </div>
     </div>
 
     <div v-if="viewMode === 'card'" class="product-grid">
@@ -81,9 +105,6 @@
           <div class="row-actions">
             <button v-if="product.externalDemoUrl" class="row-btn ghost" type="button" @click.stop="openExternal(product)">外部体验</button>
             <button class="row-btn" type="button" @click.stop="startTrial(product)">立即试用</button>
-            <button class="row-btn ghost" type="button" @click.stop="togglePick(product)">
-              {{ isPicked(product) ? '已加入' : '加入工作台' }}
-            </button>
             <button class="row-btn icon" type="button" :aria-label="isFavorite(product) ? '取消收藏' : '收藏'" @click.stop="toggleFav(product)">
               <svg v-if="isFavorite(product)" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
                 <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
@@ -108,7 +129,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { productAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
-import { addViewedProduct, readFavorites, readSelectedProducts, toggleFavorite, toggleSelectedProduct } from '../lib/productPrefs'
+import { addViewedProduct, readFavorites, toggleFavorite } from '../lib/productPrefs'
 
 const stats = ref({ totalProducts: 6, totalTrials: 150, satisfaction: 92 })
 
@@ -126,10 +147,6 @@ const router = useRouter()
 const favorites = computed(() => {
   prefsVersion.value
   return readFavorites()
-})
-const picked = computed(() => {
-  prefsVersion.value
-  return readSelectedProducts()
 })
 
 const visibleCategories = computed(() => {
@@ -234,16 +251,8 @@ function isFavorite(product) {
   return favorites.value.includes(Number(product?.id))
 }
 
-function isPicked(product) {
-  return picked.value.includes(Number(product?.id))
-}
-
 function toggleFav(product) {
   toggleFavorite(product?.id)
-}
-
-function togglePick(product) {
-  toggleSelectedProduct(product?.id)
 }
 
 function openExternal(product) {
@@ -304,16 +313,20 @@ function granularityLabel(v) {
 .product-toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
 .filters { display: flex; gap: 12px; flex-wrap: wrap; }
 .filter-btn { padding: 8px 16px; border: 1px solid #e0e0e0; background: #fff; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.filter-btn:first-child { border-radius: 4px}
 .filter-btn:hover { border-color: #0066ff; color: #0066ff; }
 .filter-btn.active { background: #0066ff; color: #fff; border-color: #0066ff; }
 
-.search-box { margin-bottom: 24px; }
-.search-input { width: 100%; padding: 12px 16px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+.search-module{display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.search-input-wrap { width: 50%; position: relative; }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #bfbfbf; display: inline-flex; align-items: center; justify-content: center; pointer-events: none; }
+.search-input { width: 100%; padding: 12px 16px 12px 40px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
 .search-input:focus { outline: none; border-color: #0066ff; }
 
-.view-toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 12px; }
+.view-toolbar { display: flex; justify-content: flex-end; gap: 10px;  }
 .view-btn { height: 34px; padding: 0 14px; border-radius: 10px; border: 1px solid #e0e0e0; background: #fff; cursor: pointer; font-size: 13px; }
 .view-btn.active { border-color: #1677ff; color: #1677ff; background: rgba(22, 119, 255, 0.06); }
+.view-btn.icon { width: 40px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 
 .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 

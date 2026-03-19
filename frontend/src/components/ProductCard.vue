@@ -45,14 +45,6 @@
         >
           立即试用
         </button>
-        <button
-          v-if="showTry"
-          class="btn-pick"
-          type="button"
-          @click.stop="togglePick"
-        >
-          {{ isPicked ? '已加入' : '加入工作台' }}
-        </button>
       </div>
     </div>
   </div>
@@ -60,7 +52,7 @@
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { readFavorites, readSelectedProducts, toggleFavorite, toggleSelectedProduct } from '../lib/productPrefs'
+import { readFavorites, toggleFavorite } from '../lib/productPrefs'
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -75,12 +67,7 @@ const favorites = computed(() => {
   prefsVersion.value
   return readFavorites()
 })
-const picked = computed(() => {
-  prefsVersion.value
-  return readSelectedProducts()
-})
 const isFavorite = computed(() => favorites.value.includes(Number(props.product?.id)))
-const isPicked = computed(() => picked.value.includes(Number(props.product?.id)))
 
 const onPrefsChanged = () => {
   prefsVersion.value += 1
@@ -102,10 +89,6 @@ function openExternal() {
 
 function toggleFav() {
   toggleFavorite(props.product?.id)
-}
-
-function togglePick() {
-  toggleSelectedProduct(props.product?.id)
 }
 
 const capabilityText = computed(() => {
@@ -245,19 +228,6 @@ const scenarioText = computed(() => {
 .btn-try:hover {
   background: #0958d9;
 }
-
-.btn-pick {
-  padding: 8px 14px;
-  background: #fff;
-  color: #333;
-  border: 1px solid rgba(5, 5, 5, 0.16);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.btn-pick:hover { border-color: #1677ff; color: #1677ff; background: rgba(22, 119, 255, 0.06); }
 
 .btn-external {
   padding: 8px 14px;

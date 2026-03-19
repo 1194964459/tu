@@ -1,5 +1,4 @@
 const FAVORITES_KEY = 'demo-favorite-products'
-const SELECTED_KEY = 'demo-selected-products'
 const VIEWED_KEY = 'demo-viewed-products'
 const AI_RECOMMEND_KEY = 'demo-ai-recommended-products'
 
@@ -55,22 +54,6 @@ export function readFavorites() {
 
 export function toggleFavorite(id) {
   return toggleId(FAVORITES_KEY, id)
-}
-
-export function readSelectedProducts() {
-  return readIdArray(SELECTED_KEY)
-}
-
-export function addSelectedProduct(id) {
-  return addId(SELECTED_KEY, id)
-}
-
-export function removeSelectedProduct(id) {
-  return removeId(SELECTED_KEY, id)
-}
-
-export function toggleSelectedProduct(id) {
-  return toggleId(SELECTED_KEY, id)
 }
 
 export function readViewedProducts() {
