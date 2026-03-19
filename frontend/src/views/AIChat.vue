@@ -134,10 +134,10 @@
             v-model="inputMessage" 
             type="text" 
             placeholder="请描述您的需求，如：我是物流企业，需要仓储管理解决方案"
-            @keyup.enter="sendMessage"
+            @keyup.enter="sendMessage()"
             :disabled="loading"
           />
-          <button @click="sendMessage" :disabled="loading || !inputMessage.trim()">
+          <button @click="sendMessage()" :disabled="loading || !String(inputMessage || '').trim()">
             {{ loading ? '发送中...' : '发送' }}
           </button>
         </div>

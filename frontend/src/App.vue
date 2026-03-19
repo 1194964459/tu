@@ -550,7 +550,7 @@ function bufferToHex(buffer) {
   }
 
 .header { background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 100; }
-.header-content { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+.header-content { max-width: 1200px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
 .logo { display: flex; align-items: center; gap: 8px; }
 .logo-icon { font-size: 24px; }
 .logo-text { font-size: 18px; font-weight: 600; color: #1a1a2e; }
@@ -562,7 +562,7 @@ function bufferToHex(buffer) {
 .user-info { display: inline-flex; align-items: center; gap: 10px; }
 .user-name { font-size: 13px; color: #333; font-weight: 600; }
 .role-badge { padding: 4px 12px; background: #f0f0f0; border-radius: 12px; font-size: 12px; color: #666; }
-.main { max-width: 1400px; margin: 0 auto; padding: 24px; background: #fff;}
+.main { max-width: 1200px; margin: 0 auto; padding: 24px; background: #fff;}
 
 .btn-auth { height: 32px; padding: 0 14px; border-radius: 4px; border: 1px solid #e0e0e0; background: #fff; color: #333; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
 .btn-auth.primary { background: #1677ff; border-color: #1677ff; color: #fff; box-shadow: 0 6px 16px rgba(0, 102, 255, 0.18); }
