@@ -127,7 +127,7 @@
         <span class="ai-bubble__icon" aria-hidden="true">
           <img class="ai-robot" :src="robotIcon" alt="" />
         </span>
-        <span class="ai-bubble__text">AI 顾问</span>
+        <span class="ai-bubble__text"></span>
         <span class="ai-bubble__dot" aria-hidden="true"></span>
       </button>
     </div>
@@ -612,13 +612,13 @@ textarea::placeholder,
 .ai-bubble:active { transform: translateY(0); }
 .ai-bubble__icon { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.16); display: inline-flex; align-items: center; justify-content: center; font-size: 18px; }
 .ai-bubble__text { font-weight: 700; font-size: 14px; letter-spacing: 0.5px; white-space: nowrap; }
-.ai-bubble__dot { width: 10px; height: 10px; border-radius: 50%; background: #52c41a; box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.6); animation: aiPulse 1.6s infinite; }
+.ai-bubble__dot { width: 10px; height: 10px; border-radius: 50%; background: #ff4d4f; box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.6); animation: aiPulse 1.6s infinite; }
 .ai-robot { width: 20px; height: 20px; display: block; object-fit: contain; }
 
 @keyframes aiPulse {
-  0% { box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.55); }
-  70% { box-shadow: 0 0 0 10px rgba(82, 196, 26, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(82, 196, 26, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.55); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 77, 79, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); }
 }
 
 .ai-panel { width: 420px; height: 560px; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); display: flex; flex-direction: column; }

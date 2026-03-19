@@ -323,7 +323,7 @@ function collectRecommendedProductIds(data) {
 .chat-main { background: #fff; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
 .chat-main { min-height: 0; }
 
-.messages { flex: 1; overflow-y: auto; padding: 24px; }
+.messages { flex: 1; overflow-y: auto; padding: 12px; }
 .messages { min-height: 0; }
 
 .message { display: flex; gap: 12px; margin-bottom: 20px; }
