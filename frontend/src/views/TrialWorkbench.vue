@@ -8,7 +8,13 @@
     <!-- 试用统计 -->
     <div class="stats-bar">
       <div class="stat-card">
-        <div class="stat-icon">📋</div>
+        <div class="stat-icon running" aria-label="进行中">
+          <span
+            class="running-spinner running-mask"
+            aria-hidden="true"
+            :style="{ WebkitMaskImage: `url(${runningIcon})`, maskImage: `url(${runningIcon})` }"
+          ></span>
+        </div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.runningCount }}</div>
           <div class="stat-label">进行中</div>
@@ -221,6 +227,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { trialAPI, productAPI, feedbackAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
 import { readFavorites } from '../lib/productPrefs'
+import runningIcon from '@/assets/icons/xunhuan.svg'
 
 const trials = ref([])
 const products = ref([])
@@ -480,15 +487,23 @@ function purchaseIntentText(v) {
 
 .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
 .stat-card { background: #fff; padding: 24px; border-radius: 12px; display: flex; align-items: center; gap: 16px; border: 1px solid rgba(5, 5, 5, 0.1);}
-.stat-icon { font-size: 32px; }
+.stat-icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; }
+.stat-icon.running { font-size: 0; color: #1677ff; }
+.running-spinner { width: 32px; height: 32px; display: block; animation: runningSpin 1.1s linear infinite; }
+.running-mask { background: #1677ff; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: contain; mask-size: contain; }
+
+@keyframes runningSpin { to { transform: rotate(360deg); } }
 .stat-value { font-size: 28px; font-weight: 700; }
 .stat-label { color: #999; font-size: 14px; }
 
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .section-header h2 { font-size: 20px; }
-.btn-new { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
+.btn-new { height: 40px; padding: 0 18px; background: #1677ff; color: #fff; border: 1px solid #1677ff; border-radius: 999px; cursor: pointer; font-size: 14px; font-weight: 800; box-shadow: 0 10px 22px rgba(22, 119, 255, 0.22); transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease; }
+.btn-new:hover { transform: translateY(-1px); background: #0958d9; border-color: #0958d9; box-shadow: 0 14px 26px rgba(22, 119, 255, 0.26); }
+.btn-new:active { transform: translateY(0); box-shadow: 0 10px 22px rgba(22, 119, 255, 0.18); }
+.btn-new:focus-visible { outline: 3px solid rgba(22, 119, 255, 0.25); outline-offset: 2px; }
 
-.pref-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 10px; }
+.pref-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 32px; }
 .pref-col { background: #fff; border-radius: 12px; border: 1px solid rgba(5, 5, 5, 0.08); padding: 18px; }
 .pref-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: #1a1a2e; }
 .pref-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }

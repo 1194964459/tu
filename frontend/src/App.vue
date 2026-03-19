@@ -112,7 +112,7 @@
         <div class="ai-guide__body">
           <div class="ai-guide__chips">
             <button class="ai-chip" type="button" @click="askAiFromGuide('产品有哪些？')">产品有哪些？</button>
-            <button class="ai-chip" type="button" @click="askAiFromGuide('解决方案咨询')">解决方案咨询</button>
+            <button class="ai-chip" type="button" @click="askAiFromGuide('适用什么场景？')">适用什么场景？</button>
           </div>
         </div>
       </div>
