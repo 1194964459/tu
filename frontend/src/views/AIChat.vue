@@ -346,6 +346,10 @@ function collectRecommendedProductIds(data) {
 .recommend-section { margin-top: 12px; }
 .recommend-section h4 { font-size: 13px; color: #999; margin-bottom: 8px; }
 
+.product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.ai-chat.embedded .product-grid { grid-template-columns: 1fr; }
+.chat-container.compact .product-grid { grid-template-columns: 1fr; }
+
 .solution-list { display: flex; flex-direction: column; gap: 8px; }
 .solution-item { padding: 12px; background: #f9fafb; border-radius: 8px; }
 .solution-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
@@ -387,7 +391,7 @@ function collectRecommendedProductIds(data) {
 .chat-input button:disabled { background: #ccc; cursor: not-allowed; }
 
 @media (max-width: 1100px) {
-  .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .product-grid { grid-template-columns: 1fr; }
   .bundle-grid { grid-template-columns: 1fr; }
 }
 </style>
