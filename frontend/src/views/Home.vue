@@ -50,16 +50,22 @@
           <template v-else-if="block.type === 'products'">
             <div class="section">
               <div class="section-header">
-                <h2>{{ block.title }}</h2>
+                <div class="section-title">
+                  <h2>{{ block.title }}</h2>
+                  <div v-if="block.subtitle" class="section-subtitle">{{ block.subtitle }}</div>
+                </div>
                 <router-link to="/products" class="more-link">查看更多 →</router-link>
               </div>
-              <div class="product-grid">
+              <div v-if="block.products?.length" class="product-grid">
                 <ProductCard
                   v-for="product in block.products"
                   :key="product.id"
                   :product="product"
                   @select="openProduct"
                 />
+              </div>
+              <div v-else class="section-empty">
+                {{ block.emptyText || '暂无推荐内容' }}
               </div>
             </div>
           </template>
@@ -152,7 +158,14 @@ function rebuildPortal() {
   const aiRec = readAiRecommendations()
   const aiProducts = aiRec?.productIds?.length ? pickByIds(allProducts.value, aiRec.productIds).slice(0, 8) : []
   if (aiProducts.length) {
-    blocks.push({ id: 'ai', type: 'products', title: '为您推荐', span: 12, products: aiProducts })
+    blocks.push({
+      id: 'ai',
+      type: 'products',
+      title: '为您推荐',
+      subtitle: '基于 AI 智能对话，为您推荐的强相关产品',
+      span: 12,
+      products: aiProducts
+    })
   }
 
   const guess = buildGuessProducts(allProducts.value, {
@@ -160,9 +173,15 @@ function rebuildPortal() {
     viewed: readViewedProducts(),
     exclude: aiRec?.productIds || []
   })
-  if (guess.length) {
-    blocks.push({ id: 'guess', type: 'products', title: '猜你喜欢', span: 12, products: guess.slice(0, 8) })
-  }
+  blocks.push({
+    id: 'guess',
+    type: 'products',
+    title: '猜你喜欢',
+    subtitle: '基于您的行为偏好（如收藏、浏览、购买/试用历史等）做的弱相关扩展推荐',
+    span: 12,
+    products: guess.slice(0, 8),
+    emptyText: '先浏览/收藏一些产品，我们会更懂你'
+  })
 
   blocks.push({ id: 'popular', type: 'products', title: '热门产品', span: 12, products: popularProducts.value.slice(0, 8) })
   portalBlocks.value = blocks
@@ -238,7 +257,9 @@ function buildGuessProducts(list, { favorites, viewed, exclude }) {
 
 .section { background: transparent; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.section-title { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .section-header h2 { font-size: 24px; }
+.section-subtitle { font-size: 13px; color: #999; line-height: 1.4; }
 .more-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(22, 119, 255, 0.35); background: rgba(22, 119, 255, 0.06); color: #1677ff; text-decoration: none; font-size: 13px; font-weight: 700; line-height: 1; transition: all 0.2s; }
 .more-link:hover { background: #1677ff; color: #fff; border-color: #1677ff; }
 .more-link:focus-visible { outline: 3px solid rgba(22, 119, 255, 0.25); outline-offset: 2px; }
@@ -246,6 +267,8 @@ function buildGuessProducts(list, { favorites, viewed, exclude }) {
 .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
 .span-6 .product-grid { grid-template-columns: repeat(2, 1fr); }
 .span-8 .product-grid { grid-template-columns: repeat(3, 1fr); }
+
+.section-empty { padding: 18px 16px; border-radius: 12px; background: #f9fafb; border: 1px dashed rgba(5, 5, 5, 0.12); color: #999; font-size: 13px; }
 
 .category-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .category-chip { padding: 8px 14px; background: #fff; border-radius: 999px; border: 1px solid #e0e0e0; cursor: pointer; font-size: 13px; transition: all 0.2s; }
