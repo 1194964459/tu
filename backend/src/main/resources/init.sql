@@ -237,4 +237,36 @@ CREATE INDEX idx_trials_product ON trials(product_id);
 CREATE INDEX idx_trials_status ON trials(status);
 CREATE INDEX idx_feedback_trial ON trial_feedback(trial_id);
 
+-- AI 对话会话与消息（用于管理后台回溯“需求结构化/追问/标签/完整性检查”等过程）
+CREATE TABLE IF NOT EXISTS ai_conversations (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(200),
+    status VARCHAR(20) DEFAULT 'OPEN' COMMENT 'OPEN/CLOSED',
+    requirements_json TEXT,
+    tags TEXT,
+    completeness INT DEFAULT 0 COMMENT '0-100',
+    needs_more_info TINYINT DEFAULT 0,
+    next_question TEXT,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS ai_conversation_messages (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    conversation_id BIGINT NOT NULL,
+    role VARCHAR(20) NOT NULL COMMENT 'user/assistant',
+    content TEXT,
+    requirements_json TEXT,
+    tags TEXT,
+    needs_more_info TINYINT DEFAULT 0,
+    next_question TEXT,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversation_id) REFERENCES ai_conversations(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_ai_conv_user ON ai_conversations(user_id);
+CREATE INDEX idx_ai_msg_conv ON ai_conversation_messages(conversation_id);
+
 SELECT '数据库初始化完成！' AS message;

@@ -5,6 +5,9 @@ import com.example.demo.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.*;
 import java.util.regex.*;
 
@@ -17,23 +20,44 @@ public class AIService {
     @Autowired
     private SolutionMapper solutionMapper;
 
+    @Autowired
+    private AiConversationMapper aiConversationMapper;
+
+    @Autowired
+    private AiConversationMessageMapper aiConversationMessageMapper;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     public ChatResponse chat(ChatRequest request) {
         ChatResponse response = new ChatResponse();
 
-        Map<String, String> requirements = parseRequirements(request);
+        Long userId = request.getUserId() == null ? 1L : request.getUserId();
+        AiConversation conv = ensureConversation(userId, request.getConversationId());
+
+        Map<String, String> requirements = parseRequirementsJson(conv.getRequirementsJson());
+        merge(requirements, parseRequirements(request));
         response.setRequirements(requirements);
 
         boolean forceFinish = containsFinishIntent(request.getMessage());
         List<String> missing = computeMissing(requirements);
         boolean needsMoreInfo = !forceFinish && !missing.isEmpty();
+        int completeness = computeCompleteness(requirements);
+        List<String> tags = buildTags(requirements);
 
-        List<Product> recommendedProducts = recommendProducts(requirements, 3, true);
-        List<Solution> recommendedSolutions = recommendSolutions(requirements, needsMoreInfo ? 0 : 2);
+        List<Product> recommendedProducts = needsMoreInfo
+                ? Collections.emptyList()
+                : recommendProducts(requirements, 3, true);
+        List<Solution> recommendedSolutions = needsMoreInfo
+                ? Collections.emptyList()
+                : recommendSolutions(requirements, 2);
 
         response.setNeedsMoreInfo(needsMoreInfo);
         response.setNextQuestion(needsMoreInfo ? generateNextQuestion(missing) : null);
         response.setRecommendedProducts(recommendedProducts);
         response.setRecommendedSolutions(recommendedSolutions);
+        response.setMissing(missing);
+        response.setCompleteness(completeness);
+        response.setTags(tags);
 
         if (!needsMoreInfo) {
             response.setBundles(buildBundles(recommendedSolutions, requirements));
@@ -41,10 +65,179 @@ public class AIService {
             response.setBundles(Collections.emptyList());
         }
 
-        response.setReply(
-                generateReply(requirements, missing, recommendedSolutions, recommendedProducts, needsMoreInfo));
+        String reply = generateReply(requirements, missing, recommendedSolutions, recommendedProducts, needsMoreInfo);
+        response.setReply(reply);
+        response.setConversationId(conv.getId());
+
+        saveConversationTurn(conv, userId, request.getMessage(), reply, requirements, tags, needsMoreInfo,
+                response.getNextQuestion(), completeness);
 
         return response;
+    }
+
+    private AiConversation ensureConversation(Long userId, Long conversationId) {
+        if (conversationId != null) {
+            AiConversation existing = aiConversationMapper.findById(conversationId);
+            if (existing != null && Objects.equals(existing.getUserId(), userId)) {
+                return existing;
+            }
+        }
+
+        AiConversation created = new AiConversation();
+        created.setUserId(userId);
+        created.setStatus("OPEN");
+        created.setTitle("AI 对话");
+        created.setRequirementsJson("{}");
+        created.setTags("");
+        created.setCompleteness(0);
+        created.setNeedsMoreInfo(true);
+        created.setNextQuestion(null);
+        aiConversationMapper.insert(created);
+        return created;
+    }
+
+    private void saveConversationTurn(
+            AiConversation conv,
+            Long userId,
+            String userMessage,
+            String assistantReply,
+            Map<String, String> requirements,
+            List<String> tags,
+            boolean needsMoreInfo,
+            String nextQuestion,
+            int completeness) {
+
+        if (conv == null || conv.getId() == null)
+            return;
+
+        String requirementsJson = toJson(requirements);
+        String tagsStr = String.join(",", tags == null ? List.of() : tags);
+
+        if (userMessage != null && !userMessage.isBlank()) {
+            AiConversationMessage um = new AiConversationMessage();
+            um.setConversationId(conv.getId());
+            um.setRole("user");
+            um.setContent(userMessage);
+            um.setRequirementsJson(requirementsJson);
+            um.setTags(tagsStr);
+            um.setNeedsMoreInfo(needsMoreInfo);
+            um.setNextQuestion(nextQuestion);
+            aiConversationMessageMapper.insert(um);
+        }
+
+        if (assistantReply != null && !assistantReply.isBlank()) {
+            AiConversationMessage am = new AiConversationMessage();
+            am.setConversationId(conv.getId());
+            am.setRole("assistant");
+            am.setContent(assistantReply);
+            am.setRequirementsJson(requirementsJson);
+            am.setTags(tagsStr);
+            am.setNeedsMoreInfo(needsMoreInfo);
+            am.setNextQuestion(nextQuestion);
+            aiConversationMessageMapper.insert(am);
+        }
+
+        conv.setRequirementsJson(requirementsJson);
+        conv.setTags(tagsStr);
+        conv.setCompleteness(completeness);
+        conv.setNeedsMoreInfo(needsMoreInfo);
+        conv.setNextQuestion(nextQuestion);
+
+        String title = buildTitle(requirements);
+        if (title != null && !title.isBlank())
+            conv.setTitle(title);
+        aiConversationMapper.update(conv);
+    }
+
+    private String buildTitle(Map<String, String> requirements) {
+        if (requirements == null || requirements.isEmpty())
+            return "AI 对话";
+        String industry = safe(requirements.get("industry"));
+        String scenario = safe(requirements.get("scenario"));
+        String capability = safe(requirements.get("capability"));
+        List<String> parts = new ArrayList<>();
+        if (!industry.isBlank())
+            parts.add(industry);
+        if (!scenario.isBlank())
+            parts.add(scenario);
+        if (parts.isEmpty() && !capability.isBlank())
+            parts.add(capability);
+        if (parts.isEmpty())
+            return "AI 对话";
+        return String.join("-", parts).substring(0, Math.min(String.join("-", parts).length(), 80));
+    }
+
+    private int computeCompleteness(Map<String, String> requirements) {
+        int score = 0;
+        if (requirements != null) {
+            if (requirements.containsKey("industry"))
+                score += 25;
+            if (requirements.containsKey("scenario"))
+                score += 25;
+            if (requirements.containsKey("capability"))
+                score += 25;
+            if (requirements.containsKey("budget"))
+                score += 25;
+        }
+        return Math.min(100, Math.max(0, score));
+    }
+
+    private List<String> buildTags(Map<String, String> requirements) {
+        LinkedHashSet<String> tags = new LinkedHashSet<>();
+        if (requirements == null)
+            return List.of();
+
+        String industry = safe(requirements.get("industry"));
+        String scenario = safe(requirements.get("scenario"));
+        String budget = safe(requirements.get("budget"));
+        String version = safe(requirements.get("version"));
+        String scale = safe(requirements.get("scale"));
+        String needCase = safe(requirements.get("needCase"));
+
+        if (!industry.isBlank())
+            tags.add("行业:" + industry);
+        if (!scenario.isBlank())
+            tags.add("场景:" + scenario);
+        if (!budget.isBlank())
+            tags.add("预算:" + budget);
+        if (!version.isBlank())
+            tags.add("版本:" + version);
+        if (!scale.isBlank())
+            tags.add("规模:" + scale);
+        if (!needCase.isBlank())
+            tags.add("需要案例");
+
+        String capability = safe(requirements.get("capability"));
+        if (!capability.isBlank()) {
+            for (String part : capability.split("[,，/\\s]+")) {
+                String t = part == null ? "" : part.trim();
+                if (!t.isBlank())
+                    tags.add("能力:" + t);
+                if (tags.size() >= 12)
+                    break;
+            }
+        }
+
+        return tags.stream().toList();
+    }
+
+    private String toJson(Object obj) {
+        try {
+            return objectMapper.writeValueAsString(obj == null ? Map.of() : obj);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    private Map<String, String> parseRequirementsJson(String raw) {
+        try {
+            if (raw == null || raw.isBlank())
+                return new HashMap<>();
+            return objectMapper.readValue(raw, new TypeReference<Map<String, String>>() {
+            });
+        } catch (Exception e) {
+            return new HashMap<>();
+        }
     }
 
     private Map<String, String> parseRequirements(ChatRequest request) {
@@ -197,7 +390,7 @@ public class AIService {
             if (missing.contains("budget"))
                 need.add("预算");
             sb.append(String.join(" / ", need));
-            sb.append("。\n\n对话过程中我也先给您一些当前热门产品，您可以点开查看或直接开始试用。");
+            sb.append("。");
             return sb.toString();
         }
 
