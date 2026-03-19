@@ -70,6 +70,12 @@
             <span>AI 智能顾问</span>
           </div>
           <div class="ai-panel__actions">
+            <button class="ai-icon-btn" type="button" aria-label="新对话" @click="resetAiChat">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                <path d="M21 3v6h-6" />
+              </svg>
+            </button>
             <button class="ai-icon-btn" type="button" aria-label="收起" @click="collapseAiChat">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 3H3v6" />
@@ -295,6 +301,9 @@ function openAiChat() {
   aiChatOpen.value = true
   aiChatCollapsed.value = false
   dismissAiGuide()
+  nextTick(() => {
+    aiChatRef.value?.resetConversation?.()
+  })
 }
 
 function closeAiChat() {
@@ -315,7 +324,13 @@ async function askAi(text) {
   aiChatCollapsed.value = false
   dismissAiGuide()
   await nextTick()
+  aiChatRef.value?.resetConversation?.()
+  await nextTick()
   aiChatRef.value?.sendMessage?.(text)
+}
+
+function resetAiChat() {
+  aiChatRef.value?.resetConversation?.()
 }
 
 function dismissAiGuide() {
@@ -634,6 +649,51 @@ textarea::placeholder,
 }
 .ai-icon-btn:hover { border-color: #fff; }
 .ai-icon-btn.danger:hover { border-color: #fff; }
+
+.ai-panel__actions .ai-icon-btn { position: relative; }
+.ai-panel__actions .ai-icon-btn::after {
+  content: attr(aria-label);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  transform: translateX(-50%) translateY(-2px);
+  background: rgba(17, 17, 17, 0.92);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 1200;
+}
+.ai-panel__actions .ai-icon-btn::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid rgba(17, 17, 17, 0.92);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 1200;
+}
+.ai-panel__actions .ai-icon-btn:hover::after,
+.ai-panel__actions .ai-icon-btn:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.ai-panel__actions .ai-icon-btn:hover::before,
+.ai-panel__actions .ai-icon-btn:focus-visible::before {
+  opacity: 1;
+}
 
 .ai-panel__body { flex: 1; min-height: 0; overflow: hidden; background: #f6f7fb; }
 .ai-panel__body :deep(.ai-chat) { height: 100%; }

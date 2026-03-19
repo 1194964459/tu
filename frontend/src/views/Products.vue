@@ -21,6 +21,11 @@
     </div>
          
     <div class="product-toolbar">
+       <div class="filters">
+        <button class="filter-btn" :class="{ active: selectedSource === 'ALL' }" type="button" @click="selectedSource = 'ALL'">全部来源：</button>
+        <button class="filter-btn" :class="{ active: selectedSource === 'THIRD' }" type="button" @click="selectedSource = 'THIRD'">行业生态（第三方）</button>
+        <button class="filter-btn" :class="{ active: selectedSource === 'INTERNAL' }" type="button" @click="selectedSource = 'INTERNAL'">自研</button>
+      </div>
       <div class="filters">
         <button class="filter-btn" :class="{ active: selectedGroup === 'ALL' }" type="button" @click="setGroup('ALL')" style="width:104px">全部：</button>
         <button class="filter-btn" :class="{ active: selectedGroup === 'BUSINESS' }" type="button" @click="setGroup('BUSINESS')">业务类</button>
@@ -34,12 +39,15 @@
         <button class="filter-btn" :class="{ active: selectedGranularity === 'ATOMIC' }" type="button" @click="selectedGranularity = 'ATOMIC'">原子型</button>
       </div>
 
+     
+      
       <div class="filters">
         <button class="filter-btn" :class="{ active: !selectedCategory }" type="button" @click="setCategory('')">全部分类：</button>
         <button v-for="cat in visibleCategories" :key="cat" class="filter-btn" type="button" :class="{ active: selectedCategory === cat }" @click="setCategory(cat)">
           {{ cat }}
         </button>
       </div>
+
     </div>
 
     <div class="search-module">
@@ -139,6 +147,7 @@ const categories = ref([])
 const selectedGroup = ref('ALL')
 const selectedCategory = ref('')
 const selectedGranularity = ref('ALL')
+const selectedSource = ref('ALL')
 const keyword = ref('')
 const viewMode = ref(localStorage.getItem('demo-products-view') === 'list' ? 'list' : 'card')
 const prefsVersion = ref(0)
@@ -168,6 +177,8 @@ const filteredProducts = computed(() => {
   if (selectedGranularity.value !== 'ALL') {
     result = result.filter(p => granularityOfProduct(p) === selectedGranularity.value)
   }
+  if (selectedSource.value === 'THIRD') result = result.filter(isThirdPartyProduct)
+  if (selectedSource.value === 'INTERNAL') result = result.filter(p => !isThirdPartyProduct(p))
   if (keyword.value) {
     const kw = keyword.value.toLowerCase()
     result = result.filter(p => p.name.toLowerCase().includes(kw) || p.description?.toLowerCase().includes(kw))
@@ -263,6 +274,11 @@ function openExternal(product) {
   window.open(url, '_blank', 'noopener,noreferrer')
 }
 
+function isThirdPartyProduct(product) {
+  const s = String(product?.sourceType || 'INTERNAL').toUpperCase()
+  return s !== 'INTERNAL'
+}
+
 function firstCapability(product) {
   const cap = product?.capability
   if (!cap) return ''
@@ -320,7 +336,7 @@ function granularityLabel(v) {
 .filter-btn.active { background: #0066ff; color: #fff; border-color: #0066ff; }
 
 .search-module{display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-.search-input-wrap { width: 50%; position: relative; }
+.search-input-wrap { width: 60%; position: relative; }
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #bfbfbf; display: inline-flex; align-items: center; justify-content: center; pointer-events: none; }
 .search-input { width: 100%; padding: 12px 16px 12px 40px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
 .search-input:focus { outline: none; border-color: #0066ff; }

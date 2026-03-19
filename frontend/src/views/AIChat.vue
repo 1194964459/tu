@@ -183,14 +183,14 @@ defineProps({
   showSidebar: { type: Boolean, default: true }
 })
 
-defineExpose({ sendMessage })
+defineExpose({ sendMessage, resetConversation })
 
-const messages = ref([
-  {
-    role: 'assistant',
-    content: '您好！我是您的智能选型顾问\n\n为了给您推荐最合适的产品和方案，请告诉我：\n1. 您所在的行业\n2. 您希望解决的问题或场景\n3. 您的预算范围'
-  }
-])
+const initialAssistantMessage = {
+  role: 'assistant',
+  content: '您好！我是您的智能选型顾问\n\n为了给您推荐最合适的产品和方案，请告诉我：\n1. 您所在的行业\n2. 您希望解决的问题或场景\n3. 您的预算范围'
+}
+
+const messages = ref([initialAssistantMessage])
 const inputMessage = ref('')
 const loading = ref(false)
 const messagesRef = ref(null)
@@ -216,6 +216,17 @@ const embeddedQuickQuestions = [
 onMounted(() => {
   scrollToBottom()
 })
+
+function resetConversation() {
+  loading.value = false
+  inputMessage.value = ''
+  messages.value = [initialAssistantMessage]
+  conversationId.value = null
+  selectedBundleSolutionId.value = null
+  localStorage.removeItem(CONV_KEY)
+  localStorage.removeItem('selectedBundle')
+  scrollToBottom()
+}
 
 async function sendMessage(text = inputMessage.value) {
   const normalizedText = typeof text === 'string' ? text : inputMessage.value

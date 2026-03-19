@@ -134,7 +134,7 @@
         <div v-if="trials.length === 0" class="empty-state">
           <div class="empty-icon">📋</div>
           <p>暂无试用记录</p>
-          <button class="btn-new" @click="showNewTrial = true">开始第一个试用</button>
+          <!-- <button class="btn-new" @click="showNewTrial = true">开始第一个试用</button> -->
         </div>
       </div>
     </div>

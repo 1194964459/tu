@@ -36,20 +36,30 @@ public class AIService {
 
         Map<String, String> requirements = parseRequirementsJson(conv.getRequirementsJson());
         merge(requirements, parseRequirements(request));
+        finalizeTransportModes(requirements, request.getMessage());
         response.setRequirements(requirements);
 
-        boolean forceFinish = containsFinishIntent(request.getMessage());
+        String message = safe(request.getMessage());
+        boolean forceFinish = containsFinishIntent(message);
+        boolean wantsProductList = containsAny(message, "有哪些产品", "产品有哪些", "看看有哪些产品", "给我看看有哪些产品", "有什么产品");
         List<String> missing = computeMissing(requirements);
         boolean needsMoreInfo = !forceFinish && !missing.isEmpty();
         int completeness = computeCompleteness(requirements);
         List<String> tags = buildTags(requirements);
 
-        List<Product> recommendedProducts = needsMoreInfo
-                ? Collections.emptyList()
-                : recommendProducts(requirements, 3, true);
-        List<Solution> recommendedSolutions = needsMoreInfo
-                ? Collections.emptyList()
-                : recommendSolutions(requirements, 2);
+        boolean multiModal = "是".equals(requirements.get("multiModal"));
+        List<Product> recommendedProducts;
+        List<Solution> recommendedSolutions;
+        if (!needsMoreInfo) {
+            recommendedProducts = multiModal ? recommendMultiModalProducts(4)
+                    : recommendProducts(requirements, 3, true);
+            recommendedSolutions = recommendSolutions(requirements, 2);
+        } else {
+            recommendedProducts = (wantsProductList && (multiModal || containsAny(message, "多式联运")))
+                    ? recommendMultiModalProducts(4)
+                    : Collections.emptyList();
+            recommendedSolutions = Collections.emptyList();
+        }
 
         response.setNeedsMoreInfo(needsMoreInfo);
         response.setNextQuestion(needsMoreInfo ? generateNextQuestion(missing) : null);
@@ -65,7 +75,8 @@ public class AIService {
             response.setBundles(Collections.emptyList());
         }
 
-        String reply = generateReply(requirements, missing, recommendedSolutions, recommendedProducts, needsMoreInfo);
+        String reply = generateReply(requirements, missing, recommendedSolutions, recommendedProducts, needsMoreInfo,
+                wantsProductList);
         response.setReply(reply);
         response.setConversationId(conv.getId());
 
@@ -193,6 +204,8 @@ public class AIService {
         String version = safe(requirements.get("version"));
         String scale = safe(requirements.get("scale"));
         String needCase = safe(requirements.get("needCase"));
+        String transportModes = safe(requirements.get("transportModes"));
+        String multiModal = safe(requirements.get("multiModal"));
 
         if (!industry.isBlank())
             tags.add("行业:" + industry);
@@ -206,6 +219,10 @@ public class AIService {
             tags.add("规模:" + scale);
         if (!needCase.isBlank())
             tags.add("需要案例");
+        if (!transportModes.isBlank())
+            tags.add("运输方式:" + transportModes);
+        if ("是".equals(multiModal))
+            tags.add("多式联运");
 
         String capability = safe(requirements.get("capability"));
         if (!capability.isBlank()) {
@@ -316,6 +333,22 @@ public class AIService {
             requirements.put("needCase", "是");
         }
 
+        if (containsAny(message, "陆路", "公路", "汽运", "卡车", "货车", "干线")) {
+            requirements.put("modeRoad", "是");
+        }
+        if (containsAny(message, "海运", "海船", "船期", "订舱", "港口")) {
+            requirements.put("modeSea", "是");
+        }
+        if (containsAny(message, "航空", "空运", "航班", "机场")) {
+            requirements.put("modeAir", "是");
+        }
+        if (containsAny(message, "水运", "内河", "江运", "河运", "港航")) {
+            requirements.put("modeWater", "是");
+        }
+        if (containsAny(message, "多式联运")) {
+            requirements.put("multiModal", "是");
+        }
+
         return requirements;
     }
 
@@ -363,7 +396,8 @@ public class AIService {
             List<String> missing,
             List<Solution> recommendedSolutions,
             List<Product> recommendedProducts,
-            boolean needsMoreInfo) {
+            boolean needsMoreInfo,
+            boolean wantsProductList) {
         if (requirements.isEmpty()) {
             return "您好！我是您的 AI 顾问。\n\n为了推荐更贴合的产品/方案，我需要了解：\n1) 行业\n2) 场景\n3) 关注能力点\n4) 预算范围\n\n您可以这样说：我是物流企业，需要仓储管理，关注库存预测，预算 50 万以内。";
         }
@@ -377,8 +411,17 @@ public class AIService {
         if (requirements.containsKey("version")) {
             sb.append("- 版本偏好：").append(requirements.get("version")).append("\n");
         }
+        if ("是".equals(requirements.get("multiModal"))) {
+            String modes = requirements.getOrDefault("transportModes", "");
+            if (!modes.isBlank())
+                sb.append("- 运输方式：").append(modes).append("\n");
+        }
 
         if (needsMoreInfo) {
+            if (wantsProductList && ("是".equals(requirements.get("multiModal"))
+                    || containsAny(requirements.getOrDefault("scenario", ""), "运输"))) {
+                sb.append("\n关于多式联运协同，常见可组合的运输产品包括：陆路运输、海运运输、航空运输、水运运输。您可以考虑结合使用。\n");
+            }
             sb.append("\n为了更精准推荐，我还需要补充：");
             List<String> need = new ArrayList<>();
             if (missing.contains("industry"))
@@ -394,6 +437,9 @@ public class AIService {
             return sb.toString();
         }
 
+        if ("是".equals(requirements.get("multiModal"))) {
+            sb.append("\n针对多式联运协同，通常可以组合使用：陆路运输、海运运输、航空运输、水运运输。\n");
+        }
         sb.append("\n基于以上信息，我给您准备了 1-2 套可对比的方案，并配套推荐了可直接试用的产品。\n");
         if (recommendedSolutions == null || recommendedSolutions.isEmpty()) {
             sb.append("（当前暂无完全匹配的方案模板，我先按需求为您匹配最接近的产品组合。）\n");
@@ -456,8 +502,8 @@ public class AIService {
         String capability = requirements.getOrDefault("capability", "");
 
         candidates = candidates.stream()
-                .sorted((a, b) -> Integer.compare(scoreSolution(b, scenario, capability),
-                        scoreSolution(a, scenario, capability)))
+                .sorted((a, b) -> Integer.compare(scoreSolution(b, requirements, scenario, capability),
+                        scoreSolution(a, requirements, scenario, capability)))
                 .toList();
 
         if (limit <= 0)
@@ -465,7 +511,7 @@ public class AIService {
         return candidates.stream().limit(limit).toList();
     }
 
-    private int scoreSolution(Solution s, String scenario, String capability) {
+    private int scoreSolution(Solution s, Map<String, String> requirements, String scenario, String capability) {
         int score = 0;
         if (s == null)
             return score;
@@ -473,6 +519,8 @@ public class AIService {
                 safe(s.getArchitecture()));
         if (!scenario.isBlank() && hay.contains(scenario))
             score += 5;
+        if ("是".equals(requirements.get("multiModal")) && hay.contains("多式联运"))
+            score += 10;
         if (!capability.isBlank()) {
             for (String part : capability.split("[,，/\\s]+")) {
                 if (!part.isBlank() && hay.contains(part.trim()))
@@ -506,7 +554,11 @@ public class AIService {
                 }
             }
             if (products.isEmpty()) {
-                products = recommendProducts(requirements, 3, true);
+                if ("是".equals(requirements.get("multiModal")) && safe(s.getName()).contains("多式联运")) {
+                    products = recommendMultiModalProducts(4);
+                } else {
+                    products = recommendProducts(requirements, 3, true);
+                }
             }
             b.setProducts(products);
 
@@ -518,6 +570,38 @@ public class AIService {
             bundles.add(b);
         }
         return bundles;
+    }
+
+    private void finalizeTransportModes(Map<String, String> requirements, String message) {
+        LinkedHashSet<String> modes = new LinkedHashSet<>();
+        if ("是".equals(requirements.get("modeRoad")))
+            modes.add("陆路");
+        if ("是".equals(requirements.get("modeSea")))
+            modes.add("海运");
+        if ("是".equals(requirements.get("modeAir")))
+            modes.add("航空");
+        if ("是".equals(requirements.get("modeWater")))
+            modes.add("水运");
+
+        if (containsAny(message, "多式联运")) {
+            requirements.put("multiModal", "是");
+        }
+        if (modes.size() >= 2) {
+            requirements.put("multiModal", "是");
+        }
+        if (!modes.isEmpty()) {
+            requirements.put("transportModes", String.join("、", modes));
+        }
+    }
+
+    private List<Product> recommendMultiModalProducts(int limit) {
+        LinkedHashMap<Long, Product> result = new LinkedHashMap<>();
+        for (String kw : List.of("陆路运输", "海运运输", "航空运输", "水运运输", "多式联运")) {
+            for (Product p : productMapper.search(kw)) {
+                result.putIfAbsent(p.getId(), p);
+            }
+        }
+        return result.values().stream().limit(limit).toList();
     }
 
     private String extractBudget(String message) {
