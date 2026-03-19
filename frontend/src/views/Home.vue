@@ -222,16 +222,40 @@ function buildGuessProducts(list, { favorites, viewed, exclude }) {
     return topCategories.includes(String(p?.category || ''))
   })
 
-  return candidates
+  const fallback = topCategories.length
+    ? (list || []).filter(p => {
+        const id = Number(p?.id)
+        if (!Number.isFinite(id) || excluded.has(id)) return false
+        return !topCategories.includes(String(p?.category || ''))
+      })
+    : []
+
+  const sorted = [...candidates, ...fallback]
     .slice()
     .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-    .slice(0, 12)
+
+  const maxPerCategory = 2
+  const picked = []
+  const usedIds = new Set()
+  const categoryCount = new Map()
+  for (const p of sorted) {
+    if (picked.length >= 12) break
+    const id = Number(p?.id)
+    if (!Number.isFinite(id) || usedIds.has(id)) continue
+    const cat = String(p?.category || '__unknown__')
+    const n = categoryCount.get(cat) || 0
+    if (n >= maxPerCategory) continue
+    categoryCount.set(cat, n + 1)
+    usedIds.add(id)
+    picked.push(p)
+  }
+  return picked
 }
 </script>
 
 <style scoped>
 .portal { display: flex; flex-direction: column; gap: 20px; }
-.portal-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; }
+.portal-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 30px; }
 .portal-block { grid-column: span 12; }
 .span-4 { grid-column: span 4; }
 .span-6 { grid-column: span 6; }

@@ -35,14 +35,23 @@
 
               <div v-if="msg.requirements && Object.keys(msg.requirements).length" class="requirements">
                 <div class="requirements-title">需求要点</div>
+                <div v-if="msg.completeness != null" class="requirements-meta">
+                  <span class="req-meta-chip">完整度 {{ msg.completeness }}%</span>
+                  <span v-if="msg.missing?.length" class="req-meta-chip">待补充：{{ msg.missing.map(requirementLabel).join(' / ') }}</span>
+                </div>
                 <div class="requirements-list">
                   <span v-for="(v, k) in msg.requirements" :key="k" class="req-tag">
                     {{ requirementLabel(k) }}：{{ v }}
                   </span>
                 </div>
+                <div v-if="visibleTags(msg).length" class="requirements-list">
+                  <span v-for="t in visibleTags(msg)" :key="t" class="req-tag">
+                    {{ t }}
+                  </span>
+                </div>
               </div>
               
-              <div v-if="msg.recommendedProducts?.length" class="recommend-section">
+              <!-- <div v-if="msg.recommendedProducts?.length" class="recommend-section">
                 <h4>当前推荐/热门产品</h4>
                 <div class="product-grid">
                   <ProductCard
@@ -54,7 +63,7 @@
                     @try="(product) => startTrial(product, null)"
                   />
                 </div>
-              </div>
+              </div> -->
               
               <div v-if="msg.recommendedSolutions?.length" class="recommend-section">
                 <h4>推荐方案</h4>
@@ -87,10 +96,10 @@
                     </div>
                     <div class="bundle-actions">
                       <button class="btn-bundle" type="button" @click="chooseBundle(b)">
-                        选择这套方案
+                        {{ selectedBundleSolutionId === (b.solution?.id || null) ? '已选择' : '选择这套方案' }}
                       </button>
                     </div>
-                    <div v-if="b.products?.length" class="bundle-products">
+                    <div v-if="b.products?.length && selectedBundleSolutionId === (b.solution?.id || null)" class="bundle-products">
                       <div class="bundle-products-title">可试用产品</div>
                       <div class="product-grid">
                         <ProductCard
@@ -167,6 +176,8 @@ import ProductCard from '../components/ProductCard.vue'
 import robotIcon from '@/assets/icons/robot.png'
 import { writeAiRecommendations } from '../lib/productPrefs'
 
+const CONV_KEY = 'demo-ai-conversation-id'
+
 defineProps({
   embedded: { type: Boolean, default: false },
   showSidebar: { type: Boolean, default: true }
@@ -184,6 +195,8 @@ const inputMessage = ref('')
 const loading = ref(false)
 const messagesRef = ref(null)
 const router = useRouter()
+const conversationId = ref(Number(localStorage.getItem(CONV_KEY)) || null)
+const selectedBundleSolutionId = ref(null)
 
 const quickQuestions = [
   '物流行业仓储管理方案',
@@ -193,7 +206,7 @@ const quickQuestions = [
 ]
 
 const embeddedQuickQuestions = [
-  '仓库的管理',
+  '仓库管理',
   '多式联运',
   '价格/版本怎么选？',
   '推荐可直接试用的产品',
@@ -219,11 +232,20 @@ async function sendMessage(text = inputMessage.value) {
   try {
     const res = await aiAPI.chat({
       userId: 1,
+      conversationId: conversationId.value,
       message: userMessage,
       history: messages.value.slice(-6).map(m => ({ role: m.role, content: m.content }))
     })
     
     const data = res.data.data
+    if (data?.conversationId != null) {
+      const id = Number(data.conversationId)
+      if (Number.isFinite(id)) {
+        conversationId.value = id
+        localStorage.setItem(CONV_KEY, String(id))
+      }
+    }
+    window.dispatchEvent(new CustomEvent('demo-ai-conversation-updated'))
     messages.value.push({
       role: 'assistant',
       content: data.reply,
@@ -231,8 +253,12 @@ async function sendMessage(text = inputMessage.value) {
       recommendedSolutions: data.recommendedSolutions,
       bundles: data.bundles,
       requirements: data.requirements,
+      tags: data.tags,
+      missing: data.missing,
+      completeness: data.completeness,
       nextQuestion: data.needsMoreInfo ? data.nextQuestion : null
     })
+    if (Array.isArray(data?.bundles) && data.bundles.length) selectedBundleSolutionId.value = null
     const productIds = collectRecommendedProductIds(data)
     if (productIds.length) {
       writeAiRecommendations({ productIds, requirements: data.requirements, time: Date.now() })
@@ -282,6 +308,14 @@ function requirementLabel(key) {
   return map[key] || key
 }
 
+function visibleTags(msg) {
+  const raw = Array.isArray(msg?.tags) ? msg.tags : []
+  const tags = raw.map(v => String(v || '').trim()).filter(Boolean)
+  const hiddenPrefixes = ['行业:', '场景:', '预算:', '版本:', '规模:']
+  const filtered = tags.filter(t => !hiddenPrefixes.some(p => t.startsWith(p)))
+  return Array.from(new Set(filtered))
+}
+
 function goProduct(product) {
   router.push(`/products/${product.id}`)
 }
@@ -296,6 +330,7 @@ function startTrial(product, solutionId) {
 
 function chooseBundle(bundle) {
   const solutionId = bundle?.solution?.id || null
+  selectedBundleSolutionId.value = solutionId
   localStorage.setItem('selectedBundle', JSON.stringify({
     solutionId,
     time: Date.now()
@@ -366,6 +401,8 @@ function collectRecommendedProductIds(data) {
 
 .requirements { margin-top: 10px; }
 .requirements-title { font-size: 13px; color: #999; margin-bottom: 6px; }
+.requirements-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.req-meta-chip { font-size: 12px; color: #722ed1; background: rgba(114, 46, 209, 0.08); border: 1px solid rgba(114, 46, 209, 0.22); padding: 4px 8px; border-radius: 999px; }
 .requirements-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .req-tag { font-size: 12px; color: #666; background: #f5f7fa; padding: 4px 8px; border-radius: 999px; }
 
@@ -382,7 +419,7 @@ function collectRecommendedProductIds(data) {
 .solution-info { font-size: 12px; color: #666; margin-bottom: 8px; }
 .solution-meta { display: flex; gap: 16px; font-size: 12px; color: #999; }
 
-.bundle-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.bundle-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .bundle-card { background: #f9fafb; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .bundle-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .bundle-name { font-size: 14px; font-weight: 600; }

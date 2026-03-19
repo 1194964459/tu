@@ -7,7 +7,90 @@
     </div>
 
     <a-tabs v-model:activeKey="activeTab" class="admin-tabs">
-      <a-tab-pane key="trials" tab="试用需求">
+         <a-tab-pane key="ai" tab="AI对话流程追溯">
+      <div class="toolbar">
+        <input v-model="aiKeyword" class="search" type="text" placeholder="搜索标题/标签/需求" />
+        <div class="inline">
+          <span class="inline-label">用户ID</span>
+          <input v-model="aiUserId" class="input-sm" type="number" min="1" />
+        </div>
+        <button class="btn-refresh" type="button" :disabled="aiLoading" @click="loadAiConversations">
+          {{ aiLoading ? '加载中...' : '刷新' }}
+        </button>
+      </div>
+
+      <div v-if="!aiLoading && !aiFiltered.length && !aiError" class="secondary" style="margin: 6px 0 12px;">
+        若已完成 AI 对话但此处仍为空，请确认后端已重启并已创建 ai_conversations 表。
+      </div>
+
+      <div class="table">
+        <a-table
+          :loading="aiLoading"
+          :columns="aiColumns"
+          :data-source="aiFiltered"
+          :row-key="(r) => r.id"
+          :scroll="{ x: 1180, y: 560 }"
+          bordered
+          :pagination="{ pageSize: 10 }"
+        >
+          <template #emptyText>{{ aiError || '暂无 AI 对话记录' }}</template>
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'title'">
+              <div class="primary">{{ record.title || `会话 #${record.id}` }}</div>
+              <div class="secondary">用户ID：{{ record.userId }}</div>
+            </template>
+            <template v-else-if="column.key === 'req'">
+              <div class="primary clamp">{{ summarizeRequirements(record.requirementsJson) }}</div>
+            </template>
+            <template v-else-if="column.key === 'tags'">
+              <template v-if="splitTags(record.tags).length">
+                <a-tag v-for="t in splitTags(record.tags).slice(0, 6)" :key="t">{{ t }}</a-tag>
+              </template>
+              <template v-else>-</template>
+            </template>
+            <template v-else-if="column.key === 'status'">
+              <a-tag :color="record.needsMoreInfo ? 'orange' : 'green'">
+                {{ record.needsMoreInfo ? '待补充' : '可推荐' }}
+              </a-tag>
+              <span class="secondary" v-if="record.completeness != null">完整度 {{ record.completeness }}%</span>
+            </template>
+            <template v-else-if="column.key === 'time'">
+              {{ formatDateTime(record.updateTime || record.createTime) }}
+            </template>
+            <template v-else-if="column.key === 'op'">
+              <a-button size="small" type="link" @click="openAiDetail(record.id)">查看</a-button>
+            </template>
+          </template>
+        </a-table>
+      </div>
+
+      <a-modal v-model:open="aiDetailVisible" title="AI 对话详情" width="900px" :footer="null">
+        <div v-if="aiDetailLoading" class="secondary">加载中...</div>
+        <template v-else>
+          <div class="ai-detail-meta">
+            <div class="primary">{{ aiDetail.conversation?.title || '-' }}</div>
+            <div class="secondary">
+              会话ID：{{ aiDetail.conversation?.id || '-' }} ｜ 用户ID：{{ aiDetail.conversation?.userId || '-' }} ｜ 完整度：{{ aiDetail.conversation?.completeness ?? '-' }}%
+            </div>
+            <div class="secondary">需求：{{ summarizeRequirements(aiDetail.conversation?.requirementsJson) }}</div>
+            <div class="secondary">下一步追问：{{ aiDetail.conversation?.nextQuestion || '-' }}</div>
+          </div>
+
+          <div class="ai-msgs">
+            <div v-for="m in aiDetail.messages" :key="m.id" class="ai-msg" :class="m.role">
+              <div class="ai-msg__role">{{ m.role === 'user' ? '用户' : 'AI' }}</div>
+              <div class="ai-msg__content">{{ m.content }}</div>
+              <div class="ai-msg__sub">
+                <span v-if="m.requirementsJson">需求：{{ summarizeRequirements(m.requirementsJson) }}</span>
+                <span v-if="m.tags">｜ 标签：{{ m.tags }}</span>
+                <span v-if="m.nextQuestion">｜ 追问：{{ m.nextQuestion }}</span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </a-modal>
+      </a-tab-pane>
+      <a-tab-pane key="trials" tab="（内部）产品试用管理">
       <div class="toolbar">
         <input v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/能力/场景" />
         <button class="btn-refresh" type="button" :disabled="loading" @click="loadTrials">
@@ -82,7 +165,8 @@
       </div>
       </a-tab-pane>
 
-      <a-tab-pane key="ecosystem" tab="生态产品">
+
+      <a-tab-pane key="ecosystem" tab="（第三方）生态产品管理">
     <div class="eco">
       <div class="toolbar">
         <input v-model="ecoKeyword" class="search" type="text" placeholder="搜索生态产品/供应商/能力/场景/客户/案例" />
@@ -481,7 +565,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import { adminAPI, partnerAPI } from '../api'
 
@@ -490,6 +574,18 @@ const activeTab = ref('trials')
 const loading = ref(false)
 const rows = ref([])
 const keyword = ref('')
+
+const aiLoading = ref(false)
+const aiRows = ref([])
+const aiKeyword = ref('')
+const aiUserId = ref(null)
+const aiError = ref('')
+const aiDetailVisible = ref(false)
+const aiDetailLoading = ref(false)
+const aiDetail = reactive({
+  conversation: null,
+  messages: []
+})
 
 const ecoLoading = ref(false)
 const ecoKeyword = ref('')
@@ -551,6 +647,20 @@ watch(keyword, () => {
   trialPagination.current = 1
 })
 
+const aiFiltered = computed(() => {
+  const kw = aiKeyword.value.trim().toLowerCase()
+  const list = aiRows.value || []
+  if (!kw) return list
+  return list.filter(r => {
+    const parts = [
+      r.title,
+      r.tags,
+      summarizeRequirements(r.requirementsJson)
+    ].filter(Boolean)
+    return parts.join(' ').toLowerCase().includes(kw)
+  })
+})
+
 const trialColumns = [
   {
     title: '用户',
@@ -604,6 +714,15 @@ const trialColumns = [
     width: 100,
     fixed: 'right'
   }
+]
+
+const aiColumns = [
+  { title: '会话', key: 'title', width: 220, fixed: 'left' },
+  { title: '需求摘要', key: 'req' },
+  { title: '标签', key: 'tags', width: 320 },
+  { title: '状态', key: 'status', width: 160 },
+  { title: '更新时间', key: 'time', width: 180 },
+  { title: '操作', key: 'op', width: 80, fixed: 'right' }
 ]
 
 const ecoPendingColumns = [
@@ -734,7 +853,23 @@ const ecoMineColumns = [
 
 onMounted(() => {
   loadTrials()
+  loadAiConversations()
   loadEco()
+  window.addEventListener('demo-ai-conversation-updated', onAiConversationUpdated)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('demo-ai-conversation-updated', onAiConversationUpdated)
+})
+
+function onAiConversationUpdated() {
+  if (activeTab.value !== 'ai') return
+  loadAiConversations()
+}
+
+watch(activeTab, (v) => {
+  if (v !== 'ai') return
+  loadAiConversations()
 })
 
 async function loadTrials() {
@@ -763,6 +898,39 @@ async function loadEco() {
     myProducts.value = []
   }
   ecoLoading.value = false
+}
+
+async function loadAiConversations() {
+  aiLoading.value = true
+  aiError.value = ''
+  try {
+    const params = {}
+    const uid = Number(aiUserId.value)
+    if (Number.isFinite(uid) && uid > 0) params.userId = uid
+    const res = await adminAPI.aiConversations(params)
+    aiRows.value = res.data.data || []
+  } catch (e) {
+    aiRows.value = []
+    aiError.value = e?.message ? String(e.message) : '加载失败'
+  }
+  aiLoading.value = false
+}
+
+async function openAiDetail(id) {
+  aiDetailVisible.value = true
+  aiDetailLoading.value = true
+  aiDetail.conversation = null
+  aiDetail.messages = []
+
+  try {
+    const res = await adminAPI.aiConversationDetail(id)
+    const d = res.data.data || {}
+    aiDetail.conversation = d.conversation || null
+    aiDetail.messages = d.messages || []
+  } catch (e) {
+  }
+
+  aiDetailLoading.value = false
 }
 
 function normalizeRow(r) {
@@ -1020,6 +1188,25 @@ function splitTags(v) {
     .filter(Boolean)
 }
 
+function summarizeRequirements(requirementsJson) {
+  const raw = String(requirementsJson || '').trim()
+  if (!raw) return '-'
+  try {
+    const obj = JSON.parse(raw)
+    if (!obj || typeof obj !== 'object') return '-'
+    const parts = []
+    if (obj.industry) parts.push(`行业:${obj.industry}`)
+    if (obj.scenario) parts.push(`场景:${obj.scenario}`)
+    if (obj.capability) parts.push(`能力:${obj.capability}`)
+    if (obj.budget) parts.push(`预算:${obj.budget}`)
+    if (obj.version) parts.push(`版本:${obj.version}`)
+    if (!parts.length) return '-'
+    return parts.join(' ｜ ')
+  } catch (e) {
+    return '-'
+  }
+}
+
 function formatTrialStatus(status) {
   const s = String(status || '').toUpperCase()
   if (!s) return '-'
@@ -1133,6 +1320,15 @@ function formatProductStatus(status) {
 .kv:last-child { border-bottom: none; }
 .k { color: #666; font-size: 12px; }
 .v { color: #222; font-size: 13px; }
+
+.ai-detail-meta { padding: 12px 14px; border: 1px solid rgba(5, 5, 5, 0.08); border-radius: 12px; background: #fff; margin-bottom: 12px; }
+.ai-msgs { display: flex; flex-direction: column; gap: 10px; }
+.ai-msg { border: 1px solid rgba(5, 5, 5, 0.08); border-radius: 12px; padding: 12px 14px; background: #fff; }
+.ai-msg.user { background: rgba(114, 46, 209, 0.04); border-color: rgba(114, 46, 209, 0.18); }
+.ai-msg.assistant { background: rgba(22, 119, 255, 0.03); border-color: rgba(22, 119, 255, 0.16); }
+.ai-msg__role { font-weight: 800; font-size: 12px; color: #555; margin-bottom: 6px; }
+.ai-msg__content { font-size: 13px; color: #222; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.ai-msg__sub { margin-top: 8px; font-size: 12px; color: #888; white-space: pre-wrap; word-break: break-word; }
 
 @media (max-width: 1100px) {
   .thead, .tr { grid-template-columns: 170px 180px 160px 1fr 130px 110px 160px 90px; }
