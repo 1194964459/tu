@@ -193,10 +193,11 @@ const quickQuestions = [
 ]
 
 const embeddedQuickQuestions = [
-  '有哪些热门产品推荐？',
-  '我想快速选一个适合我的产品',
+  '仓库的管理',
+  '多式联运',
   '价格/版本怎么选？',
-  '推荐可直接试用的产品'
+  '推荐可直接试用的产品',
+  '联系客服',
 ]
 
 onMounted(() => {
