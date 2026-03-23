@@ -1408,54 +1408,195 @@ function buildAiTitle(requirements) {
   return parts.length ? parts.join('-') : 'AI 对话'
 }
 
-function makeAiBundles(store, requirements, products) {
-  const solutions = Array.isArray(store.solutions) ? store.solutions : []
+function normalizeAiScenario(v) {
+  const s = String(v || '').trim()
+  const map = {
+    仓储管理: '数字仓管',
+    运输管理: '网络货运',
+    订单管理: '订单履约',
+    跨境物流: '智慧口岸'
+  }
+  return map[s] || s
+}
+
+function parseBudgetRange(text) {
+  const raw = String(text || '')
+  const nums = raw.match(/[0-9]+/g)?.map(n => Number(n)).filter(Number.isFinite) || []
+  if (!nums.length) return null
+  const hasDash = raw.includes('-') || raw.includes('～') || raw.includes('~')
+  if (hasDash && nums.length >= 2) {
+    const min = Math.min(nums[0], nums[1])
+    const max = Math.max(nums[0], nums[1])
+    return { min, max }
+  }
+  const v = nums[0]
+  if (raw.includes('以内') || raw.includes('不超过') || raw.includes('以下')) return { min: 0, max: v }
+  return { min: 0, max: v }
+}
+
+function buildSolutionHay(solution, productsById) {
+  const parts = [
+    solution?.name,
+    solution?.description,
+    solution?.targetIndustry,
+    solution?.scenarios,
+    solution?.architecture
+  ].filter(Boolean)
+  const productIds = Array.isArray(solution?.productIds) ? solution.productIds : []
+  for (const id of productIds) {
+    const p = productsById.get(Number(id))
+    if (!p) continue
+    parts.push([p?.name, p?.category, p?.capability, p?.scenarios].filter(Boolean).join(' '))
+  }
+  return parts.join(' ')
+}
+
+function scoreAiSolution(solution, requirements, productsById) {
   const r = requirements && typeof requirements === 'object' ? requirements : {}
   const reqIndustry = r.industry ? String(r.industry) : ''
-  const reqScenario = r.scenario ? String(r.scenario) : ''
+  const reqScenario = normalizeAiScenario(r.scenario)
   const reqBudget = r.budget ? String(r.budget) : ''
   const capTokens = String(r.capability || '')
     .split(/[，,、/;\s]+/)
     .map(s => s.trim())
     .filter(Boolean)
 
-  const picked = solutions.slice(0, 2).map(s => {
-    const ps = (s.productIds || []).map(id => products.find(p => p.id === id)).filter(Boolean)
-    const fallback = ps.length ? ps : products.slice(0, 3)
-    const bundleProducts = fallback.slice(0, 4)
-    const hay = bundleProducts
-      .map(p => [p?.name, p?.category, p?.scenarios, p?.capability].filter(Boolean).join(' '))
-      .join(' ')
+  const hay = buildSolutionHay(solution, productsById)
+  const scenarioMatch = reqScenario ? hay.includes(reqScenario) : false
+  const industryMatch = reqIndustry ? hay.includes(reqIndustry) : false
+  const matchedCaps = capTokens.length ? capTokens.filter(t => hay.includes(t)) : []
+  const uniqueMatchedCaps = Array.from(new Set(matchedCaps))
 
-    const industryMatch = reqIndustry ? hay.includes(reqIndustry) : false
+  let score = 55
+  if (reqScenario) score += scenarioMatch ? 26 : 8
+  if (reqIndustry) score += industryMatch ? 10 : 2
+  score += Math.min(20, uniqueMatchedCaps.length * 6)
+
+  const b = parseBudgetRange(reqBudget)
+  const pr = parseBudgetRange(solution?.priceRange)
+  if (b && pr) {
+    if (b.max < pr.min) score -= 8
+    else if (b.max >= pr.min && b.max <= pr.max) score += 8
+    else score += 4
+  } else if (b || pr) {
+    score += 4
+  }
+
+  const pidCount = Array.isArray(solution?.productIds) ? solution.productIds.length : 0
+  score += pidCount ? 5 : 0
+
+  return {
+    score: Math.max(0, Math.min(100, Math.round(score))),
+    scenarioMatch,
+    industryMatch,
+    matchedCaps: uniqueMatchedCaps,
+    reqScenario,
+    reqIndustry,
+    reqBudget,
+    capTokens
+  }
+}
+
+function pickAiSolutions(solutions, requirements, productsById, limit) {
+  const list = Array.isArray(solutions) ? solutions : []
+  const scored = list.map(s => ({ s, meta: scoreAiSolution(s, requirements, productsById) }))
+    .sort((a, b) => Number(b.meta.score) - Number(a.meta.score))
+  const picked = []
+  const usedPrimary = new Set()
+  for (const item of scored) {
+    if (picked.length >= Math.max(1, Number(limit) || 2)) break
+    const scenarios = String(item.s?.scenarios || '').split(/[,，/、\n]+/).map(v => v.trim()).filter(Boolean)
+    const primary = scenarios[0] || String(item.s?.name || '')
+    if (picked.length === 0) {
+      picked.push(item)
+      usedPrimary.add(primary)
+      continue
+    }
+    if (usedPrimary.has(primary) && scored.length > Math.max(1, Number(limit) || 2)) continue
+    picked.push(item)
+    usedPrimary.add(primary)
+  }
+  if (picked.length < Math.max(1, Number(limit) || 2)) {
+    for (const item of scored) {
+      if (picked.length >= Math.max(1, Number(limit) || 2)) break
+      if (picked.some(x => Number(x.s?.id) === Number(item.s?.id))) continue
+      picked.push(item)
+    }
+  }
+  return picked
+}
+
+function pickBundleProducts(candidateProducts, usedIds, requirements, limit) {
+  const r = requirements && typeof requirements === 'object' ? requirements : {}
+  const reqScenario = normalizeAiScenario(r.scenario)
+  const capTokens = String(r.capability || '')
+    .split(/[，,、/;\s]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+  const scored = (candidateProducts || []).map(p => {
+    const hay = [p?.name, p?.category, p?.scenarios, p?.capability, p?.description].filter(Boolean).join(' ')
     const scenarioMatch = reqScenario ? hay.includes(reqScenario) : false
-    const matchedCaps = capTokens.length ? capTokens.filter(t => hay.includes(t)) : []
-    const uniqueMatchedCaps = Array.from(new Set(matchedCaps))
+    const capMatch = capTokens.length ? capTokens.filter(t => hay.includes(t)).length : 0
+    const popularity = Number(p?.popularity || 0)
+    const score = (scenarioMatch ? 20 : 0) + capMatch * 6 + Math.min(10, popularity / 10)
+    return { p, score }
+  }).sort((a, b) => Number(b.score) - Number(a.score))
 
-    let score = 60
-    if (reqScenario) score += scenarioMatch ? 18 : 6
-    if (reqIndustry) score += industryMatch ? 8 : 2
-    score += Math.min(18, uniqueMatchedCaps.length * 6)
-    if (reqBudget) score += 6
-    score += ps.length ? 5 : 2
-    score = Math.max(0, Math.min(100, Math.round(score)))
+  const picked = []
+  const max = Math.max(1, Number(limit) || 4)
+  for (const { p } of scored) {
+    if (picked.length >= max) break
+    const id = Number(p?.id)
+    if (!Number.isFinite(id)) continue
+    if (usedIds.has(id)) continue
+    usedIds.add(id)
+    picked.push(p)
+  }
+  if (picked.length < max) {
+    for (const { p } of scored) {
+      if (picked.length >= max) break
+      const id = Number(p?.id)
+      if (!Number.isFinite(id)) continue
+      if (picked.some(x => Number(x?.id) === id)) continue
+      picked.push(p)
+    }
+  }
+  return picked
+}
+
+function makeAiBundles(solutions, requirements, products) {
+  const allSolutions = Array.isArray(solutions) ? solutions : []
+  const productsById = new Map((products || []).map(p => [Number(p?.id), p]))
+  const chosen = pickAiSolutions(allSolutions, requirements, productsById, 2)
+  const usedProductIds = new Set()
+
+  const bundles = chosen.map(({ s, meta }) => {
+    const reqIndustry = meta.reqIndustry
+    const reqScenario = meta.reqScenario
+    const reqBudget = meta.reqBudget
+    const capTokens = meta.capTokens
+
+    const productIds = Array.isArray(s?.productIds) ? s.productIds : []
+    const directProducts = productIds.map(id => productsById.get(Number(id))).filter(Boolean)
+    const candidates = directProducts.length ? directProducts : (products || [])
+    const bundleProducts = pickBundleProducts(candidates, usedProductIds, requirements, 2)
 
     const reasons = []
-    if (reqScenario) reasons.push(scenarioMatch ? `场景匹配：覆盖${reqScenario}相关流程` : `场景建议：可扩展支持${reqScenario}场景`)
+    if (reqScenario) reasons.push(meta.scenarioMatch ? `场景匹配：覆盖${reqScenario}相关流程` : `场景建议：可扩展支持${reqScenario}场景`)
     if (capTokens.length) {
       reasons.push(
-        uniqueMatchedCaps.length
-          ? `功能覆盖：${uniqueMatchedCaps.slice(0, 4).join('、')}`
+        meta.matchedCaps.length
+          ? `功能覆盖：${meta.matchedCaps.slice(0, 4).join('、')}`
           : `功能建议：可按需补齐${capTokens.slice(0, 4).join('、')}`
       )
     }
-    if (reqIndustry) reasons.push(industryMatch ? `行业适配：面向${reqIndustry}业务特征配置` : `行业通用：可结合${reqIndustry}需求做定制适配`)
+    if (reqIndustry) reasons.push(meta.industryMatch ? `行业适配：面向${reqIndustry}业务特征配置` : `行业通用：可结合${reqIndustry}需求做定制适配`)
     if (reqBudget || s?.priceRange) reasons.push(`预算参考：${s?.priceRange || '可按规模评估报价'}`)
     const productNames = bundleProducts.map(p => p?.name).filter(Boolean).slice(0, 2)
     if (productNames.length) reasons.push(`可试用产品：${productNames.join('、')}`)
 
     return {
-      score,
+      score: meta.score,
       reasons,
       solution: {
         id: s.id,
@@ -1472,7 +1613,7 @@ function makeAiBundles(store, requirements, products) {
     }
   })
 
-  return picked.slice().sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0))
+  return bundles.slice().sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0))
 }
 
 function makeAiReply(requirements, missing, recommendedProducts, bundles, needsMoreInfo) {
@@ -1936,14 +2077,14 @@ async function handleMockRequest(config) {
     const tagsArr = buildAiTags(requirements)
 
     let recommendedProducts = needsMoreInfo ? [] : pickRecommendedProducts(products, requirements, 3)
-    const recommendedSolutions = needsMoreInfo ? [] : (store.solutions || []).slice(0, 2).map(s => ({
-      id: s.id,
-      name: s.name,
-      description: s.description,
-      estimatedDays: s.estimatedDays,
-      priceRange: s.priceRange
-    }))
-    let bundles = needsMoreInfo ? [] : makeAiBundles(store, requirements, recommendedProducts.length ? recommendedProducts : products.slice(0, 4))
+    let bundles = needsMoreInfo ? [] : makeAiBundles(store.solutions || [], requirements, products)
+    const recommendedSolutions = needsMoreInfo ? [] : bundles.map(b => ({
+      id: b.solution?.id,
+      name: b.solution?.name,
+      description: b.solution?.description,
+      estimatedDays: b.solution?.estimatedDays,
+      priceRange: b.solution?.priceRange
+    })).filter(s => s?.id != null)
 
     let reply = makeAiReply(requirements, missing, recommendedProducts, bundles, needsMoreInfo)
     if (!needsMoreInfo && browseProductsIntent && String(requirements?.scenario || '').includes('多式联运')) {

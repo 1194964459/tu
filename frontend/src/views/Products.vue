@@ -124,7 +124,7 @@
 
     <div v-if="viewMode === 'card'" class="product-grid">
       <ProductCard
-        v-for="product in filteredProducts"
+        v-for="product in pagedProducts"
         :key="product.id"
         :product="product"
         :showTry="true"
@@ -134,7 +134,7 @@
     </div>
 
     <div v-else class="product-list">
-      <div v-for="product in filteredProducts" :key="product.id" class="product-row" @click="openProduct(product)">
+      <div v-for="product in pagedProducts" :key="product.id" class="product-row" @click="openProduct(product)">
         <div class="row-main">
           <div class="row-title">
             <span class="row-name">{{ product.name }}</span>
@@ -168,11 +168,27 @@
     <div v-if="filteredProducts.length === 0" class="empty-state">
       <p>暂无产品</p>
     </div>
+
+    <div v-else-if="totalPages > 1" class="pagination">
+      <div class="pagination-left">
+        <span class="pagination-total">共 {{ filteredProducts.length }} 条</span>
+        <select v-model.number="pageSize" class="page-size">
+          <option :value="6">6/页</option>
+          <option :value="12">12/页</option>
+          <option :value="24">24/页</option>
+        </select>
+      </div>
+      <div class="pagination-right">
+        <button class="page-btn" type="button" :disabled="currentPage <= 1" @click="goPrev">上一页</button>
+        <span class="page-indicator">{{ currentPage }} / {{ totalPages }}</span>
+        <button class="page-btn" type="button" :disabled="currentPage >= totalPages" @click="goNext">下一页</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { productAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
@@ -279,6 +295,37 @@ const filteredProducts = computed(() => {
   return result
 })
 
+const pageSize = ref(Number(localStorage.getItem('demo-products-page-size')) || 12)
+const currentPage = ref(1)
+
+const totalPages = computed(() => {
+  const total = filteredProducts.value.length
+  const size = Math.max(1, Number(pageSize.value) || 12)
+  return Math.max(1, Math.ceil(total / size))
+})
+
+const pagedProducts = computed(() => {
+  const size = Math.max(1, Number(pageSize.value) || 12)
+  const total = filteredProducts.value.length
+  const pages = Math.max(1, Math.ceil(total / size))
+  const page = Math.min(Math.max(1, Number(currentPage.value) || 1), pages)
+  const start = (page - 1) * size
+  return filteredProducts.value.slice(start, start + size)
+})
+
+watch([selectedSystem, selectedScene, selectedServiceType, selectedGranularity, selectedSource, keyword], () => {
+  currentPage.value = 1
+})
+
+watch(pageSize, (v) => {
+  localStorage.setItem('demo-products-page-size', String(v))
+  currentPage.value = 1
+})
+
+watch(totalPages, (n) => {
+  if (currentPage.value > n) currentPage.value = n
+})
+
 onMounted(async () => {
   window.addEventListener('demo-product-prefs-changed', onPrefsChanged)
   try {
@@ -313,6 +360,14 @@ function startTrial(product) {
 function setViewMode(v) {
   viewMode.value = v
   localStorage.setItem('demo-products-view', v)
+}
+
+function goPrev() {
+  currentPage.value = Math.max(1, Number(currentPage.value) - 1)
+}
+
+function goNext() {
+  currentPage.value = Math.min(totalPages.value, Number(currentPage.value) + 1)
 }
 
 function onPrefsChanged() {
@@ -435,6 +490,15 @@ function granularityLabel(v) {
 .fav-text { font-size: 13px; font-weight: 600; }
 
 .empty-state { text-align: center; padding: 60px; color: #999; }
+
+.pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; padding: 10px 12px; background: #fff; border: 1px solid rgba(5, 5, 5, 0.06); border-radius: 12px; }
+.pagination-left { display: inline-flex; align-items: center; gap: 10px; color: #666; font-size: 13px; }
+.pagination-total { color: #999; }
+.page-size { height: 32px; border-radius: 10px; border: 1px solid #e0e0e0; padding: 0 10px; background: #fff; color: #333; font-size: 13px; }
+.pagination-right { display: inline-flex; align-items: center; gap: 10px; }
+.page-btn { height: 32px; padding: 0 12px; border-radius: 10px; border: 1px solid rgba(22, 119, 255, 0.5); background: #fff; color: #1677ff; cursor: pointer; font-size: 13px; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-indicator { color: #666; font-size: 13px; min-width: 80px; text-align: center; }
 
 
 .stats-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #fff; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 40px; border: 1px solid rgba(5, 5, 5, 0.1);}
