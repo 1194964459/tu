@@ -177,10 +177,11 @@ function rebuildPortal() {
   }
 
   if (isLoggedIn()) {
+    const guessExcludedIds = [1] // 国家级物流大数据平台
     const guess = buildGuessProducts(allProducts.value, {
       favorites: readFavorites(),
       viewed: readViewedProducts(),
-      exclude: aiRec?.productIds || []
+      exclude: [...(aiRec?.productIds || []), ...guessExcludedIds]
     })
     blocks.push({
       id: 'guess',
@@ -188,7 +189,7 @@ function rebuildPortal() {
       title: '猜你喜欢',
       subtitle: '基于您的行为偏好（如收藏、浏览、购买/试用历史等）做的弱相关扩展推荐',
       span: 12,
-      products: guess.slice(0, 8),
+      products: guess.slice(0, 6),
       emptyText: '先浏览/收藏一些产品，我们会更懂你'
     })
   }
