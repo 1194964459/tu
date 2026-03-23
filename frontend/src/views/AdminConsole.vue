@@ -37,7 +37,10 @@
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'title'">
               <div class="primary">{{ record.title || `会话 #${record.id}` }}</div>
-              <div class="secondary">用户ID：{{ record.userId }}</div>
+              <div class="secondary">
+                用户ID：{{ record.userId }}
+                <a-tag class="click-tag" @click.stop="openUserPortrait(record.userId)">用户画像</a-tag>
+              </div>
             </template>
             <template v-else-if="column.key === 'req'">
               <div class="primary clamp">{{ summarizeRequirements(record.requirementsJson) }}</div>
@@ -87,6 +90,88 @@
               </div>
             </div>
           </div>
+        </template>
+      </a-modal>
+
+      <a-modal v-model:open="portraitVisible" :title="`用户画像｜用户ID：${portraitUserId || '-'}`" width="860px" :footer="null">
+        <div v-if="portraitLoading" class="secondary">加载中...</div>
+        <template v-else>
+          <div v-if="portraitError" class="secondary">{{ portraitError }}</div>
+          <template v-else>
+            <div class="portrait-grid">
+              <div class="portrait-card">
+                <div class="portrait-title">基础信息</div>
+                <div class="kv">
+                  <div class="k">姓名</div><div class="v">{{ portraitBase.name || '-' }}</div>
+                  <div class="k">企业</div><div class="v">{{ portraitBase.company || '-' }}</div>
+                  <div class="k">行业</div><div class="v">{{ portraitBase.industry || '-' }}</div>
+                  <div class="k">岗位</div><div class="v">{{ portraitBase.jobRole || '-' }}</div>
+                </div>
+              </div>
+
+              <div class="portrait-card">
+                <div class="portrait-title">AI 对话</div>
+                <div class="kv">
+                  <div class="k">会话数</div><div class="v">{{ portraitAi.conversationCount ?? 0 }}</div>
+                  <div class="k">平均完整度</div><div class="v">{{ portraitAi.avgCompleteness ?? '-' }}<span v-if="portraitAi.avgCompleteness != null">%</span></div>
+                  <div class="k">最近更新时间</div><div class="v">{{ portraitAi.lastTime ? formatDateTime(portraitAi.lastTime) : '-' }}</div>
+                  <div class="k">最近需求</div><div class="v">{{ portraitAi.lastRequirements || '-' }}</div>
+                </div>
+                <div class="tag-block">
+                  <div class="tag-title">高频标签</div>
+                  <div class="tag-list">
+                    <template v-if="portraitAi.topTags.length">
+                      <a-tag v-for="t in portraitAi.topTags" :key="t">{{ t }}</a-tag>
+                    </template>
+                    <template v-else>-</template>
+                  </div>
+                </div>
+              </div>
+
+              <div class="portrait-card">
+                <div class="portrait-title">试用与反馈</div>
+                <div class="kv">
+                  <div class="k">试用总数</div><div class="v">{{ portraitTrial.trialTotal ?? 0 }}</div>
+                  <div class="k">进行中</div><div class="v">{{ portraitTrial.runningCount ?? 0 }}</div>
+                  <div class="k">已完成</div><div class="v">{{ portraitTrial.completedCount ?? 0 }}</div>
+                  <div class="k">平均评分</div><div class="v">{{ portraitTrial.averageRating ?? '-' }}/5</div>
+                  <div class="k">反馈数</div><div class="v">{{ portraitTrial.feedbackCount ?? 0 }}</div>
+                  <div class="k">购买意向</div><div class="v">{{ portraitTrial.intentSummary || '-' }}</div>
+                </div>
+              </div>
+
+              <div class="portrait-card">
+                <div class="portrait-title">兴趣偏好（试用）</div>
+                <div class="tag-block">
+                  <div class="tag-title">产品体系</div>
+                  <div class="tag-list">
+                    <template v-if="portraitTrial.topSystems.length">
+                      <a-tag v-for="t in portraitTrial.topSystems" :key="t">{{ t }}</a-tag>
+                    </template>
+                    <template v-else>-</template>
+                  </div>
+                </div>
+                <div class="tag-block">
+                  <div class="tag-title">垂类场景</div>
+                  <div class="tag-list">
+                    <template v-if="portraitTrial.topScenes.length">
+                      <a-tag v-for="t in portraitTrial.topScenes" :key="t">{{ t }}</a-tag>
+                    </template>
+                    <template v-else>-</template>
+                  </div>
+                </div>
+                <div class="tag-block">
+                  <div class="tag-title">服务类型</div>
+                  <div class="tag-list">
+                    <template v-if="portraitTrial.topServiceTypes.length">
+                      <a-tag v-for="t in portraitTrial.topServiceTypes" :key="t">{{ t }}</a-tag>
+                    </template>
+                    <template v-else>-</template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
         </template>
       </a-modal>
       </a-tab-pane>
@@ -567,7 +652,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import zhCN from 'ant-design-vue/es/locale/zh_CN'
-import { adminAPI, partnerAPI } from '../api'
+import { adminAPI, feedbackAPI, partnerAPI, productAPI, trialAPI } from '../api'
 
 const activeTab = ref('trials')
 
@@ -585,6 +670,24 @@ const aiDetailLoading = ref(false)
 const aiDetail = reactive({
   conversation: null,
   messages: []
+})
+
+const portraitVisible = ref(false)
+const portraitLoading = ref(false)
+const portraitError = ref('')
+const portraitUserId = ref(null)
+const portraitBase = reactive({ name: '', company: '', industry: '', jobRole: '' })
+const portraitAi = reactive({ conversationCount: 0, avgCompleteness: null, lastTime: null, lastRequirements: '', topTags: [] })
+const portraitTrial = reactive({
+  trialTotal: 0,
+  runningCount: 0,
+  completedCount: 0,
+  averageRating: 0,
+  feedbackCount: 0,
+  intentSummary: '',
+  topSystems: [],
+  topScenes: [],
+  topServiceTypes: []
 })
 
 const ecoLoading = ref(false)
@@ -724,6 +827,153 @@ const aiColumns = [
   { title: '更新时间', key: 'time', width: 180 },
   { title: '操作', key: 'op', width: 80, fixed: 'right' }
 ]
+
+function safeParse(raw, fallback) {
+  try {
+    return raw ? JSON.parse(raw) : fallback
+  } catch (e) {
+    return fallback
+  }
+}
+
+function splitListText(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return []
+  return text
+    .split(/[,，/、\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+}
+
+function topNFromCounter(counter, limit) {
+  const arr = Array.from(counter.entries()).map(([k, v]) => ({ k, v }))
+  arr.sort((a, b) => b.v - a.v)
+  return arr.slice(0, limit).map(x => `${x.k}(${x.v})`)
+}
+
+function countByList(items, pickList) {
+  const counter = new Map()
+  for (const it of items || []) {
+    for (const k of pickList(it)) {
+      counter.set(k, (counter.get(k) || 0) + 1)
+    }
+  }
+  return counter
+}
+
+function summarizeIntent(counter) {
+  const parts = []
+  const order = [
+    ['PURCHASED', '已购买'],
+    ['PENDING', '考虑中'],
+    ['INTERESTED', '感兴趣'],
+    ['NONE', '暂无兴趣']
+  ]
+  for (const [k, label] of order) {
+    const n = counter.get(k) || 0
+    if (n) parts.push(`${label}${n}`)
+  }
+  return parts.join(' / ')
+}
+
+async function openUserPortrait(userId) {
+  const uid = Number(userId)
+  portraitUserId.value = Number.isFinite(uid) ? uid : null
+  portraitVisible.value = true
+  portraitLoading.value = true
+  portraitError.value = ''
+
+  portraitBase.name = ''
+  portraitBase.company = ''
+  portraitBase.industry = ''
+  portraitBase.jobRole = ''
+
+  portraitAi.conversationCount = 0
+  portraitAi.avgCompleteness = null
+  portraitAi.lastTime = null
+  portraitAi.lastRequirements = ''
+  portraitAi.topTags = []
+
+  portraitTrial.trialTotal = 0
+  portraitTrial.runningCount = 0
+  portraitTrial.completedCount = 0
+  portraitTrial.averageRating = 0
+  portraitTrial.feedbackCount = 0
+  portraitTrial.intentSummary = ''
+  portraitTrial.topSystems = []
+  portraitTrial.topScenes = []
+  portraitTrial.topServiceTypes = []
+
+  try {
+    const usersRaw = localStorage.getItem('demo-platform-users')
+    const users = safeParse(usersRaw, [])
+    const sessionRaw = localStorage.getItem('demo-platform-session')
+    const session = safeParse(sessionRaw, null)
+    const account = session?.account ? String(session.account) : ''
+    const u = Array.isArray(users) ? users.find(x => String(x?.account || '').toLowerCase() === account.toLowerCase()) : null
+    portraitBase.name = u?.name ? String(u.name) : '演示用户'
+    portraitBase.company = u?.company ? String(u.company) : '演示企业'
+    portraitBase.industry = u?.industry ? String(u.industry) : '物流'
+    portraitBase.jobRole = u?.jobRole ? String(u.jobRole) : '-'
+
+    const [productsRes, aiRes, trialsRes, feedbackRes] = await Promise.all([
+      productAPI.list(),
+      adminAPI.aiConversations({ userId: portraitUserId.value }),
+      trialAPI.userTrials(portraitUserId.value),
+      feedbackAPI.listAll()
+    ])
+
+    const products = productsRes?.data?.data || []
+    const productMap = new Map((products || []).map(p => [Number(p?.id), p]))
+
+    const convs = aiRes?.data?.data || []
+    portraitAi.conversationCount = convs.length
+    const completenesses = convs.map(c => Number(c?.completeness)).filter(n => Number.isFinite(n))
+    if (completenesses.length) {
+      portraitAi.avgCompleteness = Math.round((completenesses.reduce((a, b) => a + b, 0) / completenesses.length) * 10) / 10
+    }
+    const tagCounter = new Map()
+    for (const c of convs) {
+      for (const t of splitListText(c?.tags)) {
+        tagCounter.set(t, (tagCounter.get(t) || 0) + 1)
+      }
+    }
+    portraitAi.topTags = topNFromCounter(tagCounter, 10)
+    const lastConv = [...convs].sort((a, b) => String(b?.updateTime || b?.createTime || '').localeCompare(String(a?.updateTime || a?.createTime || '')))[0] || null
+    portraitAi.lastTime = lastConv?.updateTime || lastConv?.createTime || null
+    portraitAi.lastRequirements = summarizeRequirements(lastConv?.requirementsJson) || ''
+
+    const trials = trialsRes?.data?.data || []
+    portraitTrial.trialTotal = trials.length
+    portraitTrial.runningCount = trials.filter(t => String(t?.status || '').toUpperCase() === 'RUNNING').length
+    portraitTrial.completedCount = trials.filter(t => String(t?.status || '').toUpperCase() === 'COMPLETED').length
+
+    const feedbacksAll = feedbackRes?.data?.data || []
+    const myFeedbacks = (feedbacksAll || []).filter(f => Number(f?.userId) === portraitUserId.value)
+    portraitTrial.feedbackCount = myFeedbacks.length
+    const ratings = myFeedbacks.map(f => Number(f?.rating)).filter(n => Number.isFinite(n) && n > 0)
+    portraitTrial.averageRating = ratings.length ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 : 0
+    const intentCounter = new Map()
+    for (const f of myFeedbacks) {
+      const k = f?.purchaseIntent ? String(f.purchaseIntent) : 'NONE'
+      intentCounter.set(k, (intentCounter.get(k) || 0) + 1)
+    }
+    portraitTrial.intentSummary = summarizeIntent(intentCounter)
+
+    const trialProducts = trials.map(t => productMap.get(Number(t?.productId))).filter(Boolean)
+    const systemCounter = countByList(trialProducts, p => [String(p?.category || '')].filter(Boolean))
+    const serviceTypeCounter = countByList(trialProducts, p => [String(p?.serviceType || '')].filter(Boolean))
+    const sceneCounter = countByList(trialProducts, p => splitListText(p?.scenarios))
+
+    portraitTrial.topSystems = topNFromCounter(systemCounter, 8)
+    portraitTrial.topServiceTypes = topNFromCounter(serviceTypeCounter, 8)
+    portraitTrial.topScenes = topNFromCounter(sceneCounter, 10)
+  } catch (e) {
+    portraitError.value = e?.message ? String(e.message) : '加载失败'
+  } finally {
+    portraitLoading.value = false
+  }
+}
 
 const ecoPendingColumns = [
   {
@@ -1263,6 +1513,8 @@ function formatProductStatus(status) {
 .td { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
 .primary { font-size: 14px; color: #222; }
 .secondary { font-size: 12px; color: #888; margin-left: 6px; }
+.click-tag { margin-left: 8px; cursor: pointer; user-select: none; }
+.click-tag:hover { border-color: rgba(22, 119, 255, 0.6); color: #1677ff; }
 .inline-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .inline-main { font-size: 14px; color: #222; }
 .inline-sub { font-size: 12px; color: #888; }
@@ -1330,11 +1582,19 @@ function formatProductStatus(status) {
 .ai-msg__content { font-size: 13px; color: #222; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
 .ai-msg__sub { margin-top: 8px; font-size: 12px; color: #888; white-space: pre-wrap; word-break: break-word; }
 
+.portrait-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.portrait-card { border: 1px solid rgba(5, 5, 5, 0.08); border-radius: 12px; padding: 12px 14px; background: #fff; }
+.portrait-title { font-weight: 800; font-size: 13px; color: #222; margin-bottom: 10px; }
+.tag-block { margin-top: 10px; }
+.tag-title { font-size: 12px; color: #666; margin-bottom: 8px; font-weight: 700; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
 @media (max-width: 1100px) {
   .thead, .tr { grid-template-columns: 170px 180px 160px 1fr 130px 110px 160px 90px; }
 }
 
 @media (max-width: 720px) {
   .form-row { grid-template-columns: 1fr; }
+  .portrait-grid { grid-template-columns: 1fr; }
 }
 </style>
