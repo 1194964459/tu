@@ -1,9 +1,28 @@
 import axios from 'axios'
 
+const defaultBaseURL = import.meta.env.VITE_API_BASE_URL || '/api'
+const fallbackBaseURL = import.meta.env.VITE_API_FALLBACK_URL || 'http://localhost:8080/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: defaultBaseURL,
   timeout: 10000
 })
+
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const cfg = error?.config
+    if (!cfg || cfg.__retried) throw error
+
+    const base = cfg.baseURL || defaultBaseURL
+    const shouldFallback = typeof base === 'string' && (base === '/api' || base.startsWith('/'))
+    if (!shouldFallback) throw error
+
+    cfg.__retried = true
+    cfg.baseURL = fallbackBaseURL
+    return api.request(cfg)
+  }
+)
 
 // 产品 API
 export const productAPI = {

@@ -231,6 +231,8 @@ import { trialAPI, productAPI, feedbackAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
 import { readFavorites } from '../lib/productPrefs'
 import runningIcon from '@/assets/icons/xunhuan.svg'
+// import runningIcon from '@/assets/icons/xh.svg'
+
 
 const trials = ref([])
 const products = ref([])

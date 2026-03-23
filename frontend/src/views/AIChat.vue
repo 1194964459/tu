@@ -248,7 +248,8 @@ async function sendMessage(text = inputMessage.value) {
       history: messages.value.slice(-6).map(m => ({ role: m.role, content: m.content }))
     })
     
-    const data = res.data.data
+    const data = res?.data?.data ?? res?.data
+    if (!data || typeof data !== 'object') throw new Error('invalid_ai_response')
     if (data?.conversationId != null) {
       const id = Number(data.conversationId)
       if (Number.isFinite(id)) {
@@ -259,7 +260,7 @@ async function sendMessage(text = inputMessage.value) {
     window.dispatchEvent(new CustomEvent('demo-ai-conversation-updated'))
     messages.value.push({
       role: 'assistant',
-      content: data.reply,
+      content: data.reply || '抱歉，未获取到回复内容，请稍后重试。',
       recommendedProducts: data.recommendedProducts,
       recommendedSolutions: data.recommendedSolutions,
       bundles: data.bundles,
