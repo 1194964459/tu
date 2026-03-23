@@ -175,7 +175,7 @@
         </template>
       </a-modal>
       </a-tab-pane>
-      <a-tab-pane key="trials" tab="（内部）产品试用管理">
+      <a-tab-pane key="trials" tab="试用管理">
       <div class="toolbar">
         <input v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/功能/场景" />
         <button class="btn-refresh" type="button" :disabled="loading" @click="loadTrials">
@@ -254,155 +254,236 @@
       </a-tab-pane>
 
 
-      <a-tab-pane key="ecosystem" tab="（第三方）生态产品管理">
-    <div class="eco">
-      <div class="toolbar">
-        <input v-model="ecoKeyword" class="search" type="text" placeholder="搜索生态产品/供应商/功能/场景/客户/案例" />
-        <div class="inline">
-          <span class="inline-label">提交方ID</span>
-          <input v-model="ownerUserId" class="input-sm" type="number" min="1" />
-        </div>
-        <button class="btn-refresh" type="button" :disabled="ecoLoading" @click="loadEco">
-          {{ ecoLoading ? '加载中...' : '刷新' }}
-        </button>
-        <button class="btn-primary" type="button" @click="openSubmit">提交生态产品</button>
-      </div>
-
-      <div class="section-title">待审核（管理员）</div>
-      <div class="table">
-        <a-table
-          :loading="ecoLoading"
-          :columns="ecoPendingColumns"
-          :data-source="pendingFiltered"
-          :row-key="(r) => r.id"
-          :scroll="{ x: 1780, y: 260 }"
-          bordered
-        >
-          <template #emptyText>暂无待审核产品</template>
-          <template #bodyCell="{ column, record, text }">
-            <template v-if="column.key === 'product'">
-              <div>
-                <div class="primary">{{ record.name || '-' }}</div>
-                <div class="secondary">
-                  <template v-if="splitTags(record.category).length">
-                    <a-tag v-for="t in splitTags(record.category)" :key="t">{{ t }}</a-tag>
-                  </template>
-                  <template v-else>-</template>
+      <a-tab-pane key="ecosystem" tab="产品上架管理">
+        <a-tabs v-model:activeKey="productManageTab" class="admin-tabs-inner">
+          <a-tab-pane key="internal" tab="公司内部产品">
+            <div class="eco">
+              <div class="toolbar">
+                <input v-model="internalKeyword" class="search" type="text" placeholder="搜索内部产品/功能/场景/客户/案例" />
+                <div class="inline">
+                  <span class="inline-label">状态</span>
+                  <select v-model="internalStatus" class="input-sm">
+                    <option value="ALL">全部</option>
+                    <option value="ACTIVE">已上架</option>
+                    <option value="OFFLINE">已下架</option>
+                    <option value="DRAFT">草稿</option>
+                  </select>
                 </div>
+                <button class="btn-refresh" type="button" :disabled="internalLoading" @click="loadInternal">
+                  {{ internalLoading ? '加载中...' : '刷新' }}
+                </button>
+                <button class="btn-primary" type="button" @click="openInternalCreate">登记内部产品</button>
               </div>
-            </template>
-            <template v-else-if="column.key === 'provider'">
-              <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'source'">
-              <div class="primary">{{ record.sourceType || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'website'">
-              <a v-if="record.sourceUrl" class="link" :href="record.sourceUrl" target="_blank" rel="noopener noreferrer">打开</a>
-              <span v-else>-</span>
-            </template>
-            <template v-else-if="column.key === 'capability'">
-              <div class="primary clamp">{{ record.capability || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'scenarios'">
-              <div class="primary clamp">{{ record.scenarios || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'price'">
-              <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'version'">
-              <div class="primary">{{ record.version || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'external'">
-              <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
-              <span v-else>-</span>
-            </template>
-            <template v-else-if="column.key === 'status'">
-              <a-tag :color="productStatusTagColor(record.status)">
-                {{ formatProductStatus(record.status) }}
-              </a-tag>
-            </template>
-            <template v-else-if="column.key === 'op'">
-              <a-space :size="8">
-                <a-button size="small" type="link" @click="openProductDetail(record)">查看</a-button>
-                <a-button size="small" type="primary" @click="approve(record)">上架</a-button>
-                <a-button size="small" danger @click="offline(record)">下架</a-button>
-              </a-space>
-            </template>
-            <template v-else>
-              {{ text }}
-            </template>
-          </template>
-        </a-table>
-      </div>
 
-      <div class="section-title">我的提交（伙伴自助）</div>
-      <div class="table">
-        <a-table
-          :loading="ecoLoading"
-          :columns="ecoMineColumns"
-          :data-source="mineFiltered"
-          :row-key="(r) => r.id"
-          :scroll="{ x: 1620, y: 260 }"
-          bordered
-        >
-          <template #emptyText>暂无提交记录</template>
-          <template #bodyCell="{ column, record, text }">
-            <template v-if="column.key === 'product'">
-              <div>
-                <div class="primary">{{ record.name || '-' }}</div>
-                <div class="secondary">
-                  <template v-if="splitTags(record.category).length">
-                    <a-tag v-for="t in splitTags(record.category)" :key="t">{{ t }}</a-tag>
+              <div class="table">
+                <a-table
+                  :loading="internalLoading"
+                  :columns="internalColumns"
+                  :data-source="internalFiltered"
+                  :row-key="(r) => r.id"
+                  :scroll="{ x: 1400, y: 560 }"
+                  bordered
+                  :pagination="{ pageSize: 10 }"
+                >
+                  <template #emptyText>暂无内部产品</template>
+                  <template #bodyCell="{ column, record, text }">
+                    <template v-if="column.key === 'product'">
+                      <div>
+                        <div class="primary">{{ record.name || '-' }}</div>
+                        <div class="secondary">
+                          <template v-if="splitTags(record.category).length">
+                            <a-tag v-for="t in splitTags(record.category)" :key="t">{{ t }}</a-tag>
+                          </template>
+                          <template v-else>-</template>
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else-if="column.key === 'status'">
+                      <a-tag :color="productStatusTagColor(record.status)">
+                        {{ formatProductStatus(record.status) }}
+                      </a-tag>
+                    </template>
+                    <template v-else-if="column.key === 'time'">
+                      {{ formatDateTime(record.updateTime || record.createTime) }}
+                    </template>
+                    <template v-else-if="column.key === 'op'">
+                      <a-space :size="8">
+                        <a-button size="small" type="link" @click="openProductDetail(record)">查看</a-button>
+                        <a-button size="small" type="link" @click="openInternalEdit(record)">编辑</a-button>
+                        <a-button
+                          v-if="String(record.status || '').toUpperCase() !== 'ACTIVE'"
+                          size="small"
+                          type="primary"
+                          @click="approve(record)"
+                        >上架</a-button>
+                        <a-button
+                          v-else
+                          size="small"
+                          danger
+                          @click="offline(record)"
+                        >下架</a-button>
+                      </a-space>
+                    </template>
+                    <template v-else>
+                      {{ text }}
+                    </template>
                   </template>
-                  <template v-else>-</template>
-                </div>
+                </a-table>
               </div>
-            </template>
-            <template v-else-if="column.key === 'provider'">
-              <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'source'">
-              <div class="primary">{{ record.sourceType || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'website'">
-              <a v-if="record.sourceUrl" class="link" :href="record.sourceUrl" target="_blank" rel="noopener noreferrer">打开</a>
-              <span v-else>-</span>
-            </template>
-            <template v-else-if="column.key === 'external'">
-              <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
-              <span v-else>-</span>
-            </template>
-            <template v-else-if="column.key === 'customers'">
-              <div class="primary clamp">{{ record.customers || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'cases'">
-              <div class="primary clamp">{{ record.cases || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'price'">
-              <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'version'">
-              <div class="primary">{{ record.version || '-' }}</div>
-            </template>
-            <template v-else-if="column.key === 'status'">
-              <a-tag :color="productStatusTagColor(record.status)">
-                {{ formatProductStatus(record.status) }}
-              </a-tag>
-            </template>
-            <template v-else-if="column.key === 'op'">
-              <a-space :size="8">
-                <a-button size="small" type="link" @click="openProductDetail(record)">查看</a-button>
-                <a-button size="small" type="link" @click="openEdit(record)">编辑</a-button>
-              </a-space>
-            </template>
-            <template v-else>
-              {{ text }}
-            </template>
-          </template>
-        </a-table>
-      </div>
-    </div>
+            </div>
+          </a-tab-pane>
+
+          <a-tab-pane key="external" tab="外部/生态产品">
+            <div class="eco">
+              <div class="toolbar">
+                <input v-model="ecoKeyword" class="search" type="text" placeholder="搜索生态产品/供应商/功能/场景/客户/案例" />
+                <div class="inline">
+                  <span class="inline-label">提交方ID</span>
+                  <input v-model="ownerUserId" class="input-sm" type="number" min="1" />
+                </div>
+                <button class="btn-refresh" type="button" :disabled="ecoLoading" @click="loadEco">
+                  {{ ecoLoading ? '加载中...' : '刷新' }}
+                </button>
+                <button class="btn-primary" type="button" @click="openSubmit">提交生态产品</button>
+              </div>
+
+              <div class="section-title">待审核（管理员）</div>
+              <div class="table">
+                <a-table
+                  :loading="ecoLoading"
+                  :columns="ecoPendingColumns"
+                  :data-source="pendingFiltered"
+                  :row-key="(r) => r.id"
+                  :scroll="{ x: 1780, y: 260 }"
+                  bordered
+                >
+                  <template #emptyText>暂无待审核产品</template>
+                  <template #bodyCell="{ column, record, text }">
+                    <template v-if="column.key === 'product'">
+                      <div>
+                        <div class="primary">{{ record.name || '-' }}</div>
+                        <div class="secondary">
+                          <template v-if="splitTags(record.category).length">
+                            <a-tag v-for="t in splitTags(record.category)" :key="t">{{ t }}</a-tag>
+                          </template>
+                          <template v-else>-</template>
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else-if="column.key === 'provider'">
+                      <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'source'">
+                      <div class="primary">{{ record.sourceType || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'website'">
+                      <a v-if="record.sourceUrl" class="link" :href="record.sourceUrl" target="_blank" rel="noopener noreferrer">打开</a>
+                      <span v-else>-</span>
+                    </template>
+                    <template v-else-if="column.key === 'capability'">
+                      <div class="primary clamp">{{ record.capability || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'scenarios'">
+                      <div class="primary clamp">{{ record.scenarios || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'price'">
+                      <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'version'">
+                      <div class="primary">{{ record.version || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'external'">
+                      <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
+                      <span v-else>-</span>
+                    </template>
+                    <template v-else-if="column.key === 'status'">
+                      <a-tag :color="productStatusTagColor(record.status)">
+                        {{ formatProductStatus(record.status) }}
+                      </a-tag>
+                    </template>
+                    <template v-else-if="column.key === 'op'">
+                      <a-space :size="8">
+                        <a-button size="small" type="link" @click="openProductDetail(record)">查看</a-button>
+                        <a-button size="small" type="primary" @click="approve(record)">上架</a-button>
+                        <a-button size="small" danger @click="offline(record)">下架</a-button>
+                      </a-space>
+                    </template>
+                    <template v-else>
+                      {{ text }}
+                    </template>
+                  </template>
+                </a-table>
+              </div>
+
+              <div class="section-title">我的提交（伙伴自助）</div>
+              <div class="table">
+                <a-table
+                  :loading="ecoLoading"
+                  :columns="ecoMineColumns"
+                  :data-source="mineFiltered"
+                  :row-key="(r) => r.id"
+                  :scroll="{ x: 1620, y: 260 }"
+                  bordered
+                >
+                  <template #emptyText>暂无提交记录</template>
+                  <template #bodyCell="{ column, record, text }">
+                    <template v-if="column.key === 'product'">
+                      <div>
+                        <div class="primary">{{ record.name || '-' }}</div>
+                        <div class="secondary">
+                          <template v-if="splitTags(record.category).length">
+                            <a-tag v-for="t in splitTags(record.category)" :key="t">{{ t }}</a-tag>
+                          </template>
+                          <template v-else>-</template>
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else-if="column.key === 'provider'">
+                      <div class="primary">{{ record.providerName || record.sourceName || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'source'">
+                      <div class="primary">{{ record.sourceType || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'website'">
+                      <a v-if="record.sourceUrl" class="link" :href="record.sourceUrl" target="_blank" rel="noopener noreferrer">打开</a>
+                      <span v-else>-</span>
+                    </template>
+                    <template v-else-if="column.key === 'external'">
+                      <a v-if="record.externalDemoUrl" class="link" :href="record.externalDemoUrl" target="_blank" rel="noopener noreferrer">打开</a>
+                      <span v-else>-</span>
+                    </template>
+                    <template v-else-if="column.key === 'customers'">
+                      <div class="primary clamp">{{ record.customers || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'cases'">
+                      <div class="primary clamp">{{ record.cases || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'price'">
+                      <div class="primary">{{ record.price != null ? `${record.price}` : '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'version'">
+                      <div class="primary">{{ record.version || '-' }}</div>
+                    </template>
+                    <template v-else-if="column.key === 'status'">
+                      <a-tag :color="productStatusTagColor(record.status)">
+                        {{ formatProductStatus(record.status) }}
+                      </a-tag>
+                    </template>
+                    <template v-else-if="column.key === 'op'">
+                      <a-space :size="8">
+                        <a-button size="small" type="link" @click="openProductDetail(record)">查看</a-button>
+                        <a-button size="small" type="link" @click="openEdit(record)">编辑</a-button>
+                      </a-space>
+                    </template>
+                    <template v-else>
+                      {{ text }}
+                    </template>
+                  </template>
+                </a-table>
+              </div>
+            </div>
+          </a-tab-pane>
+        </a-tabs>
       </a-tab-pane>
     </a-tabs>
 
@@ -576,7 +657,7 @@
     <div v-if="productDetailVisible" class="modal-overlay" @click="closeProductDetail">
       <div class="modal" @click.stop>
         <div class="modal-header">
-          <h3>生态产品详情</h3>
+          <h3>产品详情</h3>
           <button class="close-btn" type="button" @click="closeProductDetail">×</button>
         </div>
         <div class="modal-body">
@@ -726,6 +807,108 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <a-modal
+      v-model:open="internalVisible"
+      :title="internalMode === 'create' ? '登记内部产品' : '编辑内部产品'"
+      :width="680"
+      ok-text="确定"
+      cancel-text="取消"
+      :confirm-loading="internalSaving"
+      :ok-button-props="{ disabled: !internalForm.name }"
+      @ok="saveInternalProduct"
+      @cancel="closeInternalModal"
+    >
+      <a-form layout="vertical" :model="internalForm">
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="产品名称" name="name">
+              <a-input v-model:value="internalForm.name" placeholder="请输入产品名称" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="分类" name="category">
+              <a-input v-model:value="internalForm.category" placeholder="如：物流行业数字化基础平台" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="服务类型" name="serviceType">
+              <a-select v-model:value="internalForm.serviceType" placeholder="选择服务类型" allow-clear>
+                <a-select-option v-for="t in serviceTypeOptions" :key="t" :value="t">{{ t }}</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="状态" name="status">
+              <a-select v-model:value="internalForm.status" placeholder="选择状态">
+                <a-select-option value="ACTIVE">已上架</a-select-option>
+                <a-select-option value="OFFLINE">已下架</a-select-option>
+                <a-select-option value="DRAFT">草稿</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="产品方/团队" name="providerName">
+              <a-input v-model:value="internalForm.providerName" placeholder="如：中国数联" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="来源标识" name="sourceName">
+              <a-input v-model:value="internalForm.sourceName" placeholder="如：自研/公共平台/数据产品" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="功能点" name="capability">
+              <a-textarea v-model:value="internalForm.capability" :rows="3" placeholder="用逗号分隔，如：数据汇聚,数据治理..." />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="场景" name="scenarios">
+              <a-textarea v-model:value="internalForm.scenarios" :rows="3" placeholder="用逗号分隔，如：智慧港航,智慧口岸..." />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="案例" name="cases">
+              <a-textarea v-model:value="internalForm.cases" :rows="2" placeholder="可填写典型案例" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="客户" name="customers">
+              <a-textarea v-model:value="internalForm.customers" :rows="2" placeholder="可填写典型客户" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="价格（万）" name="price">
+              <a-input-number v-model:value="internalForm.price" :min="0" :step="0.01" style="width: 100%" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="版本" name="version">
+              <a-input v-model:value="internalForm.version" placeholder="如：v1.0" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-form-item label="简介" name="description">
+          <a-textarea v-model:value="internalForm.description" :rows="3" placeholder="产品简介" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
     </div>
   </a-config-provider>
 </template>
@@ -776,6 +959,33 @@ const ecoKeyword = ref('')
 const ownerUserId = ref(3)
 const pendingProducts = ref([])
 const myProducts = ref([])
+
+const productManageTab = ref('internal')
+const internalLoading = ref(false)
+const internalKeyword = ref('')
+const internalStatus = ref('ALL')
+const internalProducts = ref([])
+
+const internalVisible = ref(false)
+const internalMode = ref('create')
+const internalSaving = ref(false)
+const internalEditingId = ref(null)
+const serviceTypeOptions = ['数据公共服务', '行业动态检测', '数据产业生态']
+const internalForm = reactive({
+  name: '',
+  category: '',
+  serviceType: '',
+  status: 'ACTIVE',
+  providerName: '中国数联',
+  sourceName: '自研',
+  capability: '',
+  scenarios: '',
+  customers: '',
+  cases: '',
+  price: null,
+  version: '',
+  description: ''
+})
 
 const detailVisible = ref(false)
 const detailLoading = ref(false)
@@ -891,6 +1101,15 @@ const mineFiltered = computed(() => {
   return list.filter(p => buildProductSearchText(p).includes(kw))
 })
 
+const internalFiltered = computed(() => {
+  const kw = internalKeyword.value.trim().toLowerCase()
+  const status = String(internalStatus.value || 'ALL').toUpperCase()
+  let list = internalProducts.value || []
+  if (status !== 'ALL') list = list.filter(p => String(p?.status || '').toUpperCase() === status)
+  if (!kw) return list
+  return list.filter(p => buildProductSearchText(p).includes(kw))
+})
+
 const filteredRows = computed(() => {
   const kw = keyword.value.trim().toLowerCase()
   if (!kw) return rows.value
@@ -929,15 +1148,15 @@ const aiFiltered = computed(() => {
 
 const trialColumns = [
   {
-    title: '用户',
-    key: 'user',
-    width: 140,
+    title: '产品',
+    key: 'product',
+    width: 220,
     fixed: 'left'
   },
   {
-    title: '产品',
-    key: 'product',
-    width: 220
+    title: '用户',
+    key: 'user',
+    width: 140,
   },
   {
     title: '方案',
@@ -977,7 +1196,7 @@ const trialColumns = [
   {
     title: '操作',
     key: 'op',
-    width: 100,
+    width: 150,
     fixed: 'right'
   }
 ]
@@ -1138,6 +1357,17 @@ async function openUserPortrait(userId) {
   }
 }
 
+const internalColumns = [
+  { title: '产品', key: 'product', width: 180, fixed: 'left' },
+  { title: '服务类型', dataIndex: 'serviceType', key: 'serviceType', width: 140 },
+  { title: '来源', dataIndex: 'sourceName', key: 'sourceName', width: 140 },
+  { title: '价格', dataIndex: 'price', key: 'price', width: 90 },
+  { title: '版本', dataIndex: 'version', key: 'version', width: 90 },
+  { title: '状态', dataIndex: 'status', key: 'status', width: 120 },
+  { title: '更新时间', key: 'time', width: 180 },
+  { title: '操作', key: 'op', width: 180, fixed: 'right' }
+]
+
 const ecoPendingColumns = [
   {
     title: '产品',
@@ -1268,6 +1498,7 @@ onMounted(() => {
   loadTrials()
   loadAiConversations()
   loadEco()
+  loadInternal()
   window.addEventListener('demo-ai-conversation-updated', onAiConversationUpdated)
 })
 
@@ -1311,6 +1542,95 @@ async function loadEco() {
     myProducts.value = []
   }
   ecoLoading.value = false
+}
+
+async function loadInternal() {
+  internalLoading.value = true
+  try {
+    const res = await adminAPI.listProducts({ sourceType: 'INTERNAL' })
+    internalProducts.value = res.data.data || []
+  } catch (e) {
+    internalProducts.value = []
+  }
+  internalLoading.value = false
+}
+
+function resetInternalForm() {
+  internalForm.name = ''
+  internalForm.category = ''
+  internalForm.serviceType = ''
+  internalForm.status = 'ACTIVE'
+  internalForm.providerName = '中国数联'
+  internalForm.sourceName = '自研'
+  internalForm.capability = ''
+  internalForm.scenarios = ''
+  internalForm.customers = ''
+  internalForm.cases = ''
+  internalForm.price = null
+  internalForm.version = ''
+  internalForm.description = ''
+}
+
+function openInternalCreate() {
+  internalMode.value = 'create'
+  internalEditingId.value = null
+  resetInternalForm()
+  internalVisible.value = true
+}
+
+function openInternalEdit(p) {
+  internalMode.value = 'edit'
+  internalEditingId.value = p?.id ?? null
+  internalForm.name = p?.name || ''
+  internalForm.category = p?.category || ''
+  internalForm.serviceType = p?.serviceType || ''
+  internalForm.status = p?.status || 'ACTIVE'
+  internalForm.providerName = p?.providerName || '中国数联'
+  internalForm.sourceName = p?.sourceName || '自研'
+  internalForm.capability = p?.capability || ''
+  internalForm.scenarios = p?.scenarios || ''
+  internalForm.customers = p?.customers || ''
+  internalForm.cases = p?.cases || ''
+  internalForm.price = p?.price != null ? Number(p.price) : null
+  internalForm.version = p?.version || ''
+  internalForm.description = p?.description || ''
+  internalVisible.value = true
+}
+
+function closeInternalModal() {
+  internalVisible.value = false
+}
+
+async function saveInternalProduct() {
+  internalSaving.value = true
+  try {
+    const payload = {
+      name: internalForm.name,
+      category: internalForm.category,
+      serviceType: internalForm.serviceType || null,
+      status: internalForm.status,
+      providerName: internalForm.providerName,
+      sourceName: internalForm.sourceName,
+      capability: internalForm.capability,
+      scenarios: internalForm.scenarios,
+      customers: internalForm.customers || null,
+      cases: internalForm.cases || null,
+      price: internalForm.price == null ? null : internalForm.price,
+      version: internalForm.version,
+      description: internalForm.description
+    }
+    if (internalMode.value === 'create') {
+      await adminAPI.createProduct(payload)
+    } else {
+      await adminAPI.updateProduct(internalEditingId.value, payload)
+    }
+    closeInternalModal()
+    await loadInternal()
+    window.dispatchEvent(new CustomEvent('demo-toast', { detail: { type: 'success', message: internalMode.value === 'create' ? '已登记内部产品' : '已更新内部产品' } }))
+  } catch (e) {
+    window.dispatchEvent(new CustomEvent('demo-toast', { detail: { type: 'error', message: e?.message ? String(e.message) : '保存失败' } }))
+  }
+  internalSaving.value = false
 }
 
 async function loadAiConversations() {

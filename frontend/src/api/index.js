@@ -1664,6 +1664,87 @@ async function handleMockRequest(config) {
     return buildAxiosResponse(config, 200, buildApiResult(list, { total: list.length }))
   }
 
+  if (method === 'get' && path === '/admin/products') {
+    const sourceType = params.sourceType ? String(params.sourceType).toUpperCase() : ''
+    const status = params.status ? String(params.status).toUpperCase() : ''
+    const keyword = params.keyword ? String(params.keyword) : ''
+    let list = Array.isArray(store.products) ? store.products : []
+    if (sourceType) list = list.filter(p => String(p?.sourceType || '').toUpperCase() === sourceType)
+    if (status && status !== 'ALL') list = list.filter(p => String(p?.status || '').toUpperCase() === status)
+    list = searchProducts(list, keyword)
+    return buildAxiosResponse(config, 200, buildApiResult(list, { total: list.length }))
+  }
+
+  if (method === 'post' && path === '/admin/products') {
+    const baseTime = nowISO()
+    const id = bumpSeq(store, 'productId')
+    const category = String(body?.category || '')
+    const p = {
+      id,
+      name: String(body?.name || ''),
+      category,
+      serviceType: body?.serviceType ? String(body.serviceType) : inferServiceType({ category, sourceType: 'INTERNAL' }),
+      description: String(body?.description || ''),
+      capability: String(body?.capability || ''),
+      scenarios: String(body?.scenarios || ''),
+      price: normalizePrice(body?.price),
+      version: String(body?.version || ''),
+      providerName: String(body?.providerName || '中国数联'),
+      sourceType: 'INTERNAL',
+      sourceName: String(body?.sourceName || '自研'),
+      sourceUrl: body?.sourceUrl == null ? null : String(body.sourceUrl),
+      externalDemoUrl: body?.externalDemoUrl == null ? null : String(body.externalDemoUrl),
+      customers: body?.customers == null ? null : String(body.customers),
+      cases: body?.cases == null ? null : String(body.cases),
+      ownerUserId: 1,
+      popularity: Number(body?.popularity) || 0,
+      status: body?.status ? String(body.status) : 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    }
+    if (!p.serviceType) p.serviceType = inferServiceType(p)
+    p.name = stripExampleMark(p.name)
+    p.capability = limitListText(p.capability, 8)
+    p.scenarios = limitListText(p.scenarios, 4)
+    store.products = Array.isArray(store.products) ? store.products : []
+    store.products.unshift(p)
+    store.meta.updatedAt = baseTime
+    writeStore(store)
+    return buildAxiosResponse(config, 200, buildApiResult(p, { message: '登记成功' }))
+  }
+
+  const adminProductUpdateMatch = path.match(/^\/admin\/products\/(\d+)$/)
+  if (method === 'put' && adminProductUpdateMatch) {
+    const id = Number(adminProductUpdateMatch[1])
+    const p = (store.products || []).find(x => Number(x?.id) === id) || null
+    if (!p) return buildAxiosResponse(config, 404, { error: '产品不存在' })
+    const nextCategory = body?.category === undefined ? p.category : String(body?.category || '')
+
+    p.name = String(body?.name ?? p.name)
+    p.category = nextCategory
+    p.serviceType = body?.serviceType === undefined ? p.serviceType : String(body?.serviceType || '')
+    p.description = String(body?.description ?? p.description)
+    p.capability = body?.capability === undefined ? p.capability : String(body?.capability || '')
+    p.scenarios = body?.scenarios === undefined ? p.scenarios : String(body?.scenarios || '')
+    p.price = body?.price === undefined ? p.price : normalizePrice(body?.price)
+    p.version = String(body?.version ?? p.version)
+    p.providerName = String(body?.providerName ?? p.providerName)
+    p.sourceName = String(body?.sourceName ?? p.sourceName)
+    p.sourceUrl = body?.sourceUrl === undefined ? p.sourceUrl : (body?.sourceUrl == null ? null : String(body.sourceUrl))
+    p.externalDemoUrl = body?.externalDemoUrl === undefined ? p.externalDemoUrl : (body?.externalDemoUrl == null ? null : String(body.externalDemoUrl))
+    p.customers = body?.customers === undefined ? p.customers : (body?.customers == null ? null : String(body.customers))
+    p.cases = body?.cases === undefined ? p.cases : (body?.cases == null ? null : String(body.cases))
+    p.status = body?.status === undefined ? p.status : String(body?.status || '')
+    if (!p.serviceType) p.serviceType = inferServiceType(p)
+    p.name = stripExampleMark(p.name)
+    p.capability = limitListText(p.capability, 8)
+    p.scenarios = limitListText(p.scenarios, 4)
+    p.updateTime = nowISO()
+    store.meta.updatedAt = p.updateTime
+    writeStore(store)
+    return buildAxiosResponse(config, 200, buildApiResult(p, { message: '更新成功' }))
+  }
+
   const approveMatch = path.match(/^\/admin\/products\/(\d+)\/approve$/)
   if (method === 'put' && approveMatch) {
     const id = Number(approveMatch[1])
@@ -1942,6 +2023,9 @@ export const adminAPI = {
   trialRequestDetail: (trialId) => api.get(`/admin/trial-requests/${trialId}`),
   aiConversations: (params) => api.get('/admin/ai/conversations', { params }),
   aiConversationDetail: (id) => api.get(`/admin/ai/conversations/${id}`),
+  listProducts: (params) => api.get('/admin/products', { params }),
+  createProduct: (data) => api.post('/admin/products', data),
+  updateProduct: (id, data) => api.put(`/admin/products/${id}`, data),
   pendingProducts: () => api.get('/admin/products/pending'),
   approveProduct: (id) => api.put(`/admin/products/${id}/approve`),
   offlineProduct: (id) => api.put(`/admin/products/${id}/offline`)
