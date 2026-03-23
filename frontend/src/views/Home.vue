@@ -54,18 +54,33 @@
                   <h2>{{ block.title }}</h2>
                   <div v-if="block.subtitle" class="section-subtitle">{{ block.subtitle }}</div>
                 </div>
-                <router-link to="/products" class="more-link">查看更多 →</router-link>
+                <div class="section-actions">
+                  <button
+                    v-if="isCollapsible(block)"
+                    class="toggle-link"
+                    type="button"
+                    @click="toggleCollapse(block.id)"
+                  >
+                    {{ isCollapsed(block.id) ? '展开' : '收起' }}
+                  </button>
+                  <router-link to="/products" class="more-link">查看更多 →</router-link>
+                </div>
               </div>
-              <div v-if="block.products?.length" class="product-grid">
-                <ProductCard
-                  v-for="product in block.products"
-                  :key="product.id"
-                  :product="product"
-                  @select="openProduct"
-                />
-              </div>
+              <template v-if="!isCollapsed(block.id)">
+                <div v-if="block.products?.length" class="product-grid">
+                  <ProductCard
+                    v-for="product in block.products"
+                    :key="product.id"
+                    :product="product"
+                    @select="openProduct"
+                  />
+                </div>
+                <div v-else class="section-empty">
+                  {{ block.emptyText || '暂无推荐内容' }}
+                </div>
+              </template>
               <div v-else class="section-empty">
-                {{ block.emptyText || '暂无推荐内容' }}
+                已收起
               </div>
             </div>
           </template>
@@ -102,15 +117,52 @@ import { productAPI, trialAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
 import { addViewedProduct, readAiRecommendations, readFavorites, readViewedProducts } from '../lib/productPrefs'
 
+const HOME_COLLAPSE_KEY = 'demo-home-sections-collapsed'
+
 const allProducts = ref([])
 const categories = ref([])
 const popularProducts = ref([])
 const portalBlocks = ref([])
 const stats = ref({ totalProducts: 6, totalTrials: 150, satisfaction: 92 })
 const router = useRouter()
+const collapsedSections = ref(readCollapsedSections())
 
 function openAiDialog() {
   window.dispatchEvent(new CustomEvent('demo-open-ai-chat'))
+}
+
+function readCollapsedSections() {
+  try {
+    const raw = localStorage.getItem(HOME_COLLAPSE_KEY)
+    const obj = raw ? JSON.parse(raw) : null
+    return obj && typeof obj === 'object' ? obj : {}
+  } catch (e) {
+    return {}
+  }
+}
+
+function writeCollapsedSections(v) {
+  try {
+    localStorage.setItem(HOME_COLLAPSE_KEY, JSON.stringify(v || {}))
+  } catch (e) {}
+}
+
+function isCollapsible(block) {
+  const id = String(block?.id || '')
+  return block?.type === 'products' && ['ai', 'popular', 'guess'].includes(id)
+}
+
+function isCollapsed(id) {
+  const k = String(id || '')
+  return !!collapsedSections.value?.[k]
+}
+
+function toggleCollapse(id) {
+  const k = String(id || '')
+  const next = { ...(collapsedSections.value || {}) }
+  next[k] = !next[k]
+  collapsedSections.value = next
+  writeCollapsedSections(next)
 }
 
 function onSessionChanged() {
@@ -305,6 +357,10 @@ function isLoggedIn() {
 .section-title { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .section-header h2 { font-size: 24px; }
 .section-subtitle { font-size: 13px; color: #999; line-height: 1.4; }
+.section-actions { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.toggle-link { display: inline-flex; align-items: center; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(5, 5, 5, 0.12); background: #fff; color: #666; font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer; transition: all 0.2s; }
+.toggle-link:hover { border-color: rgba(22, 119, 255, 0.35); color: #1677ff; background: rgba(22, 119, 255, 0.06); }
+.toggle-link:focus-visible { outline: 3px solid rgba(22, 119, 255, 0.25); outline-offset: 2px; }
 .more-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(22, 119, 255, 0.35); background: rgba(22, 119, 255, 0.06); color: #1677ff; text-decoration: none; font-size: 13px; font-weight: 700; line-height: 1; transition: all 0.2s; }
 .more-link:hover { background: #1677ff; color: #fff; border-color: #1677ff; }
 .more-link:focus-visible { outline: 3px solid rgba(22, 119, 255, 0.25); outline-offset: 2px; }

@@ -1300,6 +1300,25 @@ function parseRequirementsFromText(text) {
   const msg = String(text || '')
   const requirements = {}
 
+  // 专项规则：铁路在途跟踪（重庆→德国汉堡，货主/汽车制造业）
+  const hasRail = /铁路|中欧班列/.test(msg)
+  const hasTracking = /在途|跟踪|追踪|节点/.test(msg)
+  const hasChongqing = /重庆/.test(msg)
+  const hasHamburg = /汉堡|德国/.test(msg)
+  const hasAuto = /汽车|整车/.test(msg)
+  if (hasRail && hasTracking) {
+    if (hasAuto) requirements.industry = '汽车制造业（货主企业出口物流）'
+    requirements.scenario = '铁路货运在途跟踪'
+    const caps = [
+      '在途跟踪', '状态查询', '节点追踪', '可视化', '延误预警', '轨迹回放', '时效追踪'
+    ]
+    requirements.capability = caps.join('、')
+  }
+  if (hasChongqing || hasHamburg) {
+    // 暗示跨境/多式联运链路，用于后续方案匹配加权
+    requirements.scenario = requirements.scenario || '多式联运'
+  }
+
   const industryHints = [
     ['物流', '物流'],
     ['电商', '电商'],
@@ -1411,6 +1430,7 @@ function buildAiTitle(requirements) {
 function normalizeAiScenario(v) {
   const s = String(v || '').trim()
   const map = {
+    铁路货运在途跟踪: '多式联运',
     仓储管理: '数字仓管',
     运输管理: '网络货运',
     订单管理: '订单履约',
@@ -1462,7 +1482,14 @@ function scoreAiSolution(solution, requirements, productsById) {
     .filter(Boolean)
 
   const hay = buildSolutionHay(solution, productsById)
-  const scenarioMatch = reqScenario ? hay.includes(reqScenario) : false
+  const scenarioAliases = (() => {
+    const a = new Set([reqScenario])
+    if (r.scenario === '铁路货运在途跟踪') {
+      ['多式联运', '网络货运', '干线运输', '跨境物流', '铁路', '在途可视', '节点追踪'].forEach(x => a.add(x))
+    }
+    return Array.from(a).filter(Boolean)
+  })()
+  const scenarioMatch = reqScenario ? scenarioAliases.some(x => hay.includes(x)) : false
   const industryMatch = reqIndustry ? hay.includes(reqIndustry) : false
   const matchedCaps = capTokens.length ? capTokens.filter(t => hay.includes(t)) : []
   const uniqueMatchedCaps = Array.from(new Set(matchedCaps))
@@ -1484,6 +1511,12 @@ function scoreAiSolution(solution, requirements, productsById) {
 
   const pidCount = Array.isArray(solution?.productIds) ? solution.productIds.length : 0
   score += pidCount ? 5 : 0
+
+  // 确定性微分：用于打破两方案同分（不引入随机）
+  // 结合方案ID、功能词数量、是否有场景，映射到 [-2, +2]
+  const seed = (Number(solution?.id) || 0) * 17 + (uniqueMatchedCaps.length || 0) * 3 + (reqScenario ? 11 : 0)
+  const jitter = (seed % 5) - 2
+  score += jitter
 
   return {
     score: Math.max(0, Math.min(100, Math.round(score))),
@@ -1535,7 +1568,14 @@ function pickBundleProducts(candidateProducts, usedIds, requirements, limit) {
     .filter(Boolean)
   const scored = (candidateProducts || []).map(p => {
     const hay = [p?.name, p?.category, p?.scenarios, p?.capability, p?.description].filter(Boolean).join(' ')
-    const scenarioMatch = reqScenario ? hay.includes(reqScenario) : false
+    const scenarioAliases = (() => {
+      const a = new Set([reqScenario])
+      if (r.scenario === '铁路货运在途跟踪') {
+        ['多式联运', '网络货运', '干线运输', '跨境物流', '铁路', '在途可视', '节点追踪'].forEach(x => a.add(x))
+      }
+      return Array.from(a).filter(Boolean)
+    })()
+    const scenarioMatch = reqScenario ? scenarioAliases.some(x => hay.includes(x)) : false
     const capMatch = capTokens.length ? capTokens.filter(t => hay.includes(t)).length : 0
     const popularity = Number(p?.popularity || 0)
     const score = (scenarioMatch ? 20 : 0) + capMatch * 6 + Math.min(10, popularity / 10)
