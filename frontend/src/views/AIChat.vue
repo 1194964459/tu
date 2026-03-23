@@ -39,12 +39,25 @@
                   <span class="req-meta-chip">完整度 {{ msg.completeness }}%</span>
                   <span v-if="msg.missing?.length" class="req-meta-chip">待补充：{{ msg.missing.map(requirementLabel).join(' / ') }}</span>
                 </div>
-                <div class="requirements-list">
-                  <span v-for="(v, k) in msg.requirements" :key="k" class="req-tag">
-                    {{ requirementLabel(k) }}：{{ v }}
-                  </span>
+                <div class="requirements-kv">
+                  <div v-if="msg.requirements.industry" class="req-line">
+                    <div class="req-k">{{ requirementLabel('industry') }}</div>
+                    <div class="req-v">{{ msg.requirements.industry }}</div>
+                  </div>
+                  <div v-if="msg.requirements.scenario" class="req-line">
+                    <div class="req-k">{{ requirementLabel('scenario') }}</div>
+                    <div class="req-v">{{ msg.requirements.scenario }}</div>
+                  </div>
+                  <div v-if="msg.requirements.capability" class="req-line">
+                    <div class="req-k">{{ requirementLabel('capability') }}</div>
+                    <div class="req-v">{{ msg.requirements.capability }}</div>
+                  </div>
+                  <div v-if="msg.requirements.budget" class="req-line">
+                    <div class="req-k">{{ requirementLabel('budget') }}</div>
+                    <div class="req-v">{{ msg.requirements.budget }}</div>
+                  </div>
                 </div>
-                <div v-if="visibleTags(msg).length" class="requirements-list">
+                <div v-if="visibleTags(msg).length" class="requirements-tags">
                   <span v-for="t in visibleTags(msg)" :key="t" class="req-tag">
                     {{ t }}
                   </span>
@@ -84,7 +97,10 @@
                 <div class="bundle-grid">
                   <div v-for="b in msg.bundles" :key="b.solution?.id" class="bundle-card">
                     <div class="bundle-header">
-                      <div class="bundle-name">{{ b.solution?.name }}</div>
+                      <div class="bundle-name">
+                        {{ b.solution?.name }}
+                        <span v-if="b.score != null" class="bundle-score">{{ b.score }}分</span>
+                      </div>
                       <div class="bundle-meta">
                         <span v-if="b.solution?.estimatedDays != null">⏱ {{ b.solution.estimatedDays }}天</span>
                         <span v-if="b.solution?.priceRange">💰 {{ b.solution.priceRange }}</span>
@@ -93,6 +109,9 @@
                     <div v-if="b.solution?.description" class="bundle-desc">{{ b.solution.description }}</div>
                     <div v-if="b.highlights && Object.keys(b.highlights).length" class="bundle-highlights">
                       <span v-for="(v, k) in b.highlights" :key="k" class="highlight-tag">{{ k }}：{{ v }}</span>
+                    </div>
+                    <div v-if="b.reasons?.length" class="bundle-reasons">
+                      <div v-for="(r, i) in b.reasons" :key="i" class="bundle-reason">{{ r }}</div>
                     </div>
                     <div class="bundle-actions">
                       <button class="btn-bundle" type="button" @click="chooseBundle(b)">
@@ -323,7 +342,7 @@ function requirementLabel(key) {
 function visibleTags(msg) {
   const raw = Array.isArray(msg?.tags) ? msg.tags : []
   const tags = raw.map(v => String(v || '').trim()).filter(Boolean)
-  const hiddenPrefixes = ['行业:', '场景:', '预算:', '版本:', '规模:']
+  const hiddenPrefixes = ['行业:', '场景:', '预算:', '版本:', '规模:', '功能:']
   const filtered = tags.filter(t => !hiddenPrefixes.some(p => t.startsWith(p)))
   return Array.from(new Set(filtered))
 }
@@ -415,7 +434,11 @@ function collectRecommendedProductIds(data) {
 .requirements-title { font-size: 13px; color: #999; margin-bottom: 6px; }
 .requirements-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .req-meta-chip { font-size: 12px; color: #722ed1; background: rgba(114, 46, 209, 0.08); border: 1px solid rgba(114, 46, 209, 0.22); padding: 4px 8px; border-radius: 999px; }
-.requirements-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.requirements-kv { display: flex; flex-direction: column; gap: 8px; }
+.req-line { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: start; }
+.req-k { font-size: 12px; color: #999; }
+.req-v { font-size: 12px; color: #333; line-height: 1.6; word-break: break-word; }
+.requirements-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 .req-tag { font-size: 12px; color: #666; background: #f5f7fa; padding: 4px 8px; border-radius: 999px; }
 
 .recommend-section { margin-top: 12px; }
@@ -434,11 +457,14 @@ function collectRecommendedProductIds(data) {
 .bundle-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .bundle-card { background: #f9fafb; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .bundle-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.bundle-name { font-size: 14px; font-weight: 600; }
+.bundle-name { font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.bundle-score { font-size: 12px; font-weight: 700; color: #722ed1; background: rgba(114, 46, 209, 0.08); border: 1px solid rgba(114, 46, 209, 0.22); padding: 2px 8px; border-radius: 999px; }
 .bundle-meta { display: flex; gap: 12px; font-size: 12px; color: #999; white-space: nowrap; }
 .bundle-desc { font-size: 12px; color: #666; line-height: 1.5; }
 .bundle-highlights { display: flex; flex-wrap: wrap; gap: 8px; }
 .highlight-tag { font-size: 12px; color: #0066ff; background: #e8f4ff; padding: 4px 8px; border-radius: 999px; }
+.bundle-reasons { display: flex; flex-direction: column; gap: 6px; }
+.bundle-reason { font-size: 12px; color: #666; line-height: 1.6; }
 .bundle-actions { display: flex; justify-content: flex-end; }
 .btn-bundle { padding: 8px 14px; border: 1px solid #0066ff; background: #fff; color: #0066ff; border-radius: 8px; cursor: pointer; font-size: 12px; }
 .btn-bundle:hover { background: #0066ff; color: #fff; }

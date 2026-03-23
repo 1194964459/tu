@@ -209,21 +209,61 @@ const serviceTypes = [
 const verticalScenes = [
   '智慧港航',
   '智慧口岸',
-  '智慧长江',
-  '数字仓管',
-  '网络货运',
-  '航空物流',
-  '航贸数字化',
-  '多式联运'
+  '公路运输',
+  '航空运输',
+  '铁路运输',
+  '多式联运',
+  '特种运输',
+  '物流枢纽'
 ]
+
+function normalizeSceneToken(token) {
+  const t = String(token || '').trim()
+  if (!t) return ''
+  const map = {
+    网络货运: '公路运输',
+    干线运输: '公路运输',
+    城配调度: '公路运输',
+    航空物流: '航空运输',
+    航贸数字化: '智慧口岸',
+    跨境物流: '智慧口岸',
+    智慧长江: '智慧港航',
+    港口调度: '智慧港航',
+    数字仓管: '物流枢纽',
+    仓储管理: '物流枢纽',
+    仓配一体: '物流枢纽'
+  }
+  return map[t] || t
+}
+
+function normalizeProductScenesText(text) {
+  const raw = String(text || '').trim()
+  if (!raw) return ''
+  const tokens = raw
+    .split(/[,，/、\n]+/)
+    .map(s => normalizeSceneToken(s))
+    .filter(Boolean)
+
+  const unique = Array.from(new Set(tokens))
+  const set = new Set(unique)
+  const orderedVertical = verticalScenes.filter(s => set.has(s))
+  return (orderedVertical.length ? orderedVertical : unique).join('、')
+}
 
 const favorites = computed(() => {
   prefsVersion.value
   return readFavorites()
 })
 
+const normalizedProducts = computed(() => {
+  return (products.value || []).map(p => ({
+    ...p,
+    scenarios: normalizeProductScenesText(p?.scenarios)
+  }))
+})
+
 const filteredProducts = computed(() => {
-  let result = products.value
+  let result = normalizedProducts.value
   if (selectedSystem.value !== 'ALL') result = result.filter(p => String(p?.category || '') === selectedSystem.value)
   if (selectedScene.value !== 'ALL') result = result.filter(p => String(p?.scenarios || '').includes(selectedScene.value))
   if (selectedServiceType.value !== 'ALL') result = result.filter(p => String(p?.serviceType || '') === selectedServiceType.value)

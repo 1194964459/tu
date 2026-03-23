@@ -1370,6 +1370,16 @@ function aiNextQuestion(missing) {
   return '为了更准确推荐，能再补充一些需求吗？'
 }
 
+function aiRequirementLabel(key) {
+  const k = String(key || '')
+  if (k === 'industry') return '行业'
+  if (k === 'scenario') return '场景'
+  if (k === 'capability') return '功能点'
+  if (k === 'budget') return '预算'
+  if (k === 'version') return '版本'
+  return k
+}
+
 function pickRecommendedProducts(products, requirements, limit) {
   const r = requirements && typeof requirements === 'object' ? requirements : {}
   const kw = [r.scenario, r.capability, r.industry].filter(Boolean).join(' ')
@@ -1400,10 +1410,53 @@ function buildAiTitle(requirements) {
 
 function makeAiBundles(store, requirements, products) {
   const solutions = Array.isArray(store.solutions) ? store.solutions : []
+  const r = requirements && typeof requirements === 'object' ? requirements : {}
+  const reqIndustry = r.industry ? String(r.industry) : ''
+  const reqScenario = r.scenario ? String(r.scenario) : ''
+  const reqBudget = r.budget ? String(r.budget) : ''
+  const capTokens = String(r.capability || '')
+    .split(/[，,、/;\s]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+
   const picked = solutions.slice(0, 2).map(s => {
     const ps = (s.productIds || []).map(id => products.find(p => p.id === id)).filter(Boolean)
     const fallback = ps.length ? ps : products.slice(0, 3)
+    const bundleProducts = fallback.slice(0, 4)
+    const hay = bundleProducts
+      .map(p => [p?.name, p?.category, p?.scenarios, p?.capability].filter(Boolean).join(' '))
+      .join(' ')
+
+    const industryMatch = reqIndustry ? hay.includes(reqIndustry) : false
+    const scenarioMatch = reqScenario ? hay.includes(reqScenario) : false
+    const matchedCaps = capTokens.length ? capTokens.filter(t => hay.includes(t)) : []
+    const uniqueMatchedCaps = Array.from(new Set(matchedCaps))
+
+    let score = 60
+    if (reqScenario) score += scenarioMatch ? 18 : 6
+    if (reqIndustry) score += industryMatch ? 8 : 2
+    score += Math.min(18, uniqueMatchedCaps.length * 6)
+    if (reqBudget) score += 6
+    score += ps.length ? 5 : 2
+    score = Math.max(0, Math.min(100, Math.round(score)))
+
+    const reasons = []
+    if (reqScenario) reasons.push(scenarioMatch ? `场景匹配：覆盖${reqScenario}相关流程` : `场景建议：可扩展支持${reqScenario}场景`)
+    if (capTokens.length) {
+      reasons.push(
+        uniqueMatchedCaps.length
+          ? `功能覆盖：${uniqueMatchedCaps.slice(0, 4).join('、')}`
+          : `功能建议：可按需补齐${capTokens.slice(0, 4).join('、')}`
+      )
+    }
+    if (reqIndustry) reasons.push(industryMatch ? `行业适配：面向${reqIndustry}业务特征配置` : `行业通用：可结合${reqIndustry}需求做定制适配`)
+    if (reqBudget || s?.priceRange) reasons.push(`预算参考：${s?.priceRange || '可按规模评估报价'}`)
+    const productNames = bundleProducts.map(p => p?.name).filter(Boolean).slice(0, 2)
+    if (productNames.length) reasons.push(`可试用产品：${productNames.join('、')}`)
+
     return {
+      score,
+      reasons,
       solution: {
         id: s.id,
         name: s.name,
@@ -1411,19 +1464,21 @@ function makeAiBundles(store, requirements, products) {
         estimatedDays: s.estimatedDays,
         priceRange: s.priceRange
       },
-      products: fallback.slice(0, 4),
+      products: bundleProducts,
       highlights: {
-        行业: requirements.industry || '通用',
-        场景: requirements.scenario || '综合'
+        行业: reqIndustry || '通用',
+        场景: reqScenario || '综合'
       }
     }
   })
-  return picked
+
+  return picked.slice().sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0))
 }
 
 function makeAiReply(requirements, missing, recommendedProducts, bundles, needsMoreInfo) {
   if (needsMoreInfo) {
-    return `为了给您推荐更合适的产品/方案，我还需要了解：\n- ${missing.join(' / ')}\n\n${aiNextQuestion(missing)}`
+    const missingText = (Array.isArray(missing) ? missing : []).map(aiRequirementLabel).join(' / ')
+    return `为了给您推荐更合适的产品/方案，我还需要了解：\n- ${missingText}\n\n${aiNextQuestion(missing)}`
   }
   const productNames = (recommendedProducts || []).map(p => p.name).filter(Boolean).slice(0, 6)
   const bundleNames = (bundles || []).map(b => b?.solution?.name).filter(Boolean).slice(0, 4)
