@@ -96,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { productAPI, trialAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
@@ -113,8 +113,13 @@ function openAiDialog() {
   window.dispatchEvent(new CustomEvent('demo-open-ai-chat'))
 }
 
+function onSessionChanged() {
+  rebuildPortal()
+}
+
 onMounted(async () => {
   initPortal()
+  window.addEventListener('demo-session-changed', onSessionChanged)
   try {
     const [popularRes, listRes, catsRes, statsRes] = await Promise.all([
       productAPI.popular(12),
@@ -139,6 +144,9 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  window.removeEventListener('demo-session-changed', onSessionChanged)
+})
 function openProduct(product) {
   if (!product?.id) return
   addViewedProduct(product.id)
@@ -168,20 +176,22 @@ function rebuildPortal() {
     })
   }
 
-  const guess = buildGuessProducts(allProducts.value, {
-    favorites: readFavorites(),
-    viewed: readViewedProducts(),
-    exclude: aiRec?.productIds || []
-  })
-  blocks.push({
-    id: 'guess',
-    type: 'products',
-    title: '猜你喜欢',
-    subtitle: '基于您的行为偏好（如收藏、浏览、购买/试用历史等）做的弱相关扩展推荐',
-    span: 12,
-    products: guess.slice(0, 8),
-    emptyText: '先浏览/收藏一些产品，我们会更懂你'
-  })
+  if (isLoggedIn()) {
+    const guess = buildGuessProducts(allProducts.value, {
+      favorites: readFavorites(),
+      viewed: readViewedProducts(),
+      exclude: aiRec?.productIds || []
+    })
+    blocks.push({
+      id: 'guess',
+      type: 'products',
+      title: '猜你喜欢',
+      subtitle: '基于您的行为偏好（如收藏、浏览、购买/试用历史等）做的弱相关扩展推荐',
+      span: 12,
+      products: guess.slice(0, 8),
+      emptyText: '先浏览/收藏一些产品，我们会更懂你'
+    })
+  }
 
   blocks.push({ id: 'popular', type: 'products', title: '热门产品', span: 12, products: popularProducts.value.slice(0, 8) })
   portalBlocks.value = blocks
@@ -250,6 +260,16 @@ function buildGuessProducts(list, { favorites, viewed, exclude }) {
     picked.push(p)
   }
   return picked
+}
+
+function isLoggedIn() {
+  try {
+    const raw = localStorage.getItem('demo-platform-session')
+    const s = raw ? JSON.parse(raw) : null
+    return !!(s && typeof s === 'object' && s.account)
+  } catch (e) {
+    return false
+  }
 }
 </script>
 

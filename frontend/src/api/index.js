@@ -530,7 +530,7 @@ function seedProducts() {
     },
     {
       id: 20,
-      name: '企业供应链控制塔',
+      name: '企业数智供应链（ERP+）',
       category: '企业数智供应链产品',
       description: '面向货主企业的端到端可视、预警与协同的供应链控制塔产品',
       capability: '端到端可视,异常预警,协同调度,指标分析,库存洞察,订单跟踪,在途追踪,风险看板',

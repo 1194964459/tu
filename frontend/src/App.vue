@@ -211,10 +211,10 @@
                 <label>角色/岗位</label>
                 <select v-model="registerForm.jobRole" class="select">
                   <option value="" disabled>请选择</option>
-                  <option value="业务负责人">业务负责人</option>
-                  <option value="IT">IT</option>
-                  <option value="采购">采购</option>
-                  <option value="运营">运营</option>
+                  <option value="物流企业购买方">物流企业购买方</option>
+                  <option value="产品提供方">产品提供方</option>
+                  <option value="平台管理方">平台管理方</option>
+                  <!-- <option value="运营">运营</option> -->
                 </select>
               </div>
              
@@ -311,8 +311,19 @@ const toastEventHandler = (e) => {
   pushToast(d.message, d.type, d.duration)
 }
 
+function ensureAiLogin() {
+  const session = readSession()
+  if (session?.account) return true
+  try {
+    window.dispatchEvent(new CustomEvent('demo-toast', { detail: { type: 'warning', message: '请先登录后使用 AI 顾问' } }))
+  } catch (e) {}
+  openAuth('login')
+  return false
+}
+
 const openAiChatEventHandler = (e) => {
-  openAiChat()
+  if (!ensureAiLogin()) return
+  openAiChatUnsafe()
   const msg = e?.detail?.message
   if (!msg) return
   nextTick(() => {
@@ -337,13 +348,18 @@ onUnmounted(() => {
   toastTimers.clear()
 })
 
-function openAiChat() {
+function openAiChatUnsafe() {
   aiChatOpen.value = true
   aiChatCollapsed.value = false
   dismissAiGuide()
   nextTick(() => {
     aiChatRef.value?.resetConversation?.()
   })
+}
+
+function openAiChat() {
+  if (!ensureAiLogin()) return
+  openAiChatUnsafe()
 }
 
 function closeAiChat() {
@@ -360,9 +376,8 @@ function expandAiChat() {
 }
 
 async function askAi(text) {
-  aiChatOpen.value = true
-  aiChatCollapsed.value = false
-  dismissAiGuide()
+  if (!ensureAiLogin()) return
+  openAiChatUnsafe()
   await nextTick()
   aiChatRef.value?.resetConversation?.()
   await nextTick()
@@ -406,6 +421,9 @@ function closeAuth() {
 function logout() {
   localStorage.removeItem(SESSION_KEY)
   currentUser.value = null
+  try {
+    window.dispatchEvent(new CustomEvent('demo-session-changed', { detail: { loggedIn: false } }))
+  } catch (e) {}
 }
 
 function resetLoginForm() {
@@ -452,6 +470,9 @@ async function login() {
     currentUser.value = sanitizeUser(u)
     closeAuth()
     loginForm.password = ''
+    try {
+      window.dispatchEvent(new CustomEvent('demo-session-changed', { detail: { loggedIn: true } }))
+    } catch (e) {}
   } finally {
     authLoading.value = false
   }
@@ -511,6 +532,9 @@ async function register() {
     currentUser.value = sanitizeUser(u)
     closeAuth()
     registerForm.password = ''
+    try {
+      window.dispatchEvent(new CustomEvent('demo-session-changed', { detail: { loggedIn: true } }))
+    } catch (e) {}
   } finally {
     authLoading.value = false
   }
