@@ -30,6 +30,18 @@
       <router-view />
     </main>
 
+    <div class="toast-stack" aria-live="polite" aria-atomic="true">
+      <div
+        v-for="t in toasts"
+        :key="t.id"
+        class="toast"
+        :class="t.type"
+        role="status"
+      >
+        {{ t.message }}
+      </div>
+    </div>
+
     <div class="ai-fab">
       <div v-if="aiChatOpen && aiChatCollapsed" class="ai-mini" role="dialog" aria-label="AI 顾问">
         <div class="ai-mini__header">
@@ -273,7 +285,31 @@ const aiChatCollapsed = ref(false)
 const aiChatRef = ref(null)
 const aiGuideVisible = ref(true)
 
+const toasts = ref([])
+let toastSeq = 1
+const toastTimers = new Map()
+
 const router = useRouter()
+
+function pushToast(message, type = 'info', durationMs = 2000) {
+  const msg = String(message || '').trim()
+  if (!msg) return
+  const id = toastSeq++
+  const t = { id, message: msg, type: String(type || 'info') }
+  toasts.value = [...toasts.value, t].slice(-3)
+  const prev = toastTimers.get(id)
+  if (prev) clearTimeout(prev)
+  const timer = setTimeout(() => {
+    toastTimers.delete(id)
+    toasts.value = (toasts.value || []).filter(x => x.id !== id)
+  }, Math.max(800, Number(durationMs) || 2000))
+  toastTimers.set(id, timer)
+}
+
+const toastEventHandler = (e) => {
+  const d = e?.detail && typeof e.detail === 'object' ? e.detail : {}
+  pushToast(d.message, d.type, d.duration)
+}
 
 const openAiChatEventHandler = (e) => {
   openAiChat()
@@ -287,6 +323,7 @@ const openAiChatEventHandler = (e) => {
 onMounted(() => {
   aiGuideVisible.value = true
   window.addEventListener('demo-open-ai-chat', openAiChatEventHandler)
+  window.addEventListener('demo-toast', toastEventHandler)
   const session = readSession()
   if (!session?.account) return
   const u = findUser(session.account)
@@ -295,6 +332,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('demo-open-ai-chat', openAiChatEventHandler)
+  window.removeEventListener('demo-toast', toastEventHandler)
+  for (const t of toastTimers.values()) clearTimeout(t)
+  toastTimers.clear()
 })
 
 function openAiChat() {
@@ -579,6 +619,34 @@ function bufferToHex(buffer) {
 .role-badge { padding: 4px 12px; background: #f0f0f0; border-radius: 12px; font-size: 12px; color: #666; }
 .main { max-width: 1200px; margin: 0 auto; padding: 24px; background: #fff;}
 
+.toast-stack {
+  position: fixed;
+  left: 50%;
+  top: 76px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1300;
+  pointer-events: none;
+}
+.toast {
+  pointer-events: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(17, 17, 17, 0.92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  border: 1px solid rgba(255,255,255,0.12);
+  max-width: min(560px, calc(100vw - 28px));
+  word-break: break-word;
+}
+.toast.success { background: rgba(22, 119, 255, 0.92); }
+.toast.warning { background: rgba(250, 173, 20, 0.92); }
+.toast.error { background: rgba(255, 77, 79, 0.92); }
+
 .btn-auth { height: 32px; padding: 0 14px; border-radius: 4px; border: 1px solid #e0e0e0; background: #fff; color: #333; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
 .btn-auth.primary { background: #1677ff; border-color: #1677ff; color: #fff; box-shadow: 0 6px 16px rgba(0, 102, 255, 0.18); }
 .btn-auth.ghost { background: #fff; }
@@ -636,7 +704,7 @@ textarea::placeholder,
   100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); }
 }
 
-.ai-panel { width: 420px; height: 800px; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); display: flex; flex-direction: column; }
+.ai-panel { width: 420px; height: 70vh; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); display: flex; flex-direction: column; }
 
 .ai-panel__header { height: 52px; padding: 30px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #f79319); border-bottom: 1px solid rgba(5, 5, 5, 0.06); }
 .ai-panel__title { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: #ffffff; }

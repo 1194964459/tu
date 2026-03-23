@@ -89,7 +89,12 @@ function openExternal() {
 }
 
 function toggleFav() {
-  toggleFavorite(props.product?.id)
+  const id = props.product?.id
+  const next = toggleFavorite(id)
+  const name = String(props.product?.name || '').trim()
+  const isNowFav = next.includes(Number(id))
+  const message = name ? `${isNowFav ? '已收藏' : '已取消收藏'}「${name}」` : (isNowFav ? '已收藏' : '已取消收藏')
+  window.dispatchEvent(new CustomEvent('demo-toast', { detail: { type: 'success', message } }))
 }
 
 function parseTopList(raw, maxCount = 3) {

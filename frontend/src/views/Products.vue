@@ -284,7 +284,12 @@ function isFavorite(product) {
 }
 
 function toggleFav(product) {
-  toggleFavorite(product?.id)
+  const id = product?.id
+  const next = toggleFavorite(id)
+  const name = String(product?.name || '').trim()
+  const isNowFav = next.includes(Number(id))
+  const message = name ? `${isNowFav ? '已收藏' : '已取消收藏'}「${name}」` : (isNowFav ? '已收藏' : '已取消收藏')
+  window.dispatchEvent(new CustomEvent('demo-toast', { detail: { type: 'success', message } }))
 }
 
 function openExternal(product) {
