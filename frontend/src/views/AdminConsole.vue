@@ -39,7 +39,7 @@
               <div class="primary">{{ record.title || `会话 #${record.id}` }}</div>
               <div class="secondary">
                 用户ID：{{ record.userId }}
-                <a-tag class="click-tag" @click.stop="openUserPortrait(record.userId)">用户画像</a-tag>
+                <a-tag class="click-tag" color="green" @click.stop="openUserPortrait(record.userId)">用户画像</a-tag>
               </div>
             </template>
             <template v-else-if="column.key === 'req'">
@@ -240,7 +240,10 @@
               {{ formatDateTime(record.createTime) }}
             </template>
             <template v-else-if="column.key === 'op'">
-              <a-button size="small" type="link" @click="openDetail(record.trialId)">查看</a-button>
+              <a-space :size="8">
+                <a-button size="small" type="link" @click="openDetail(record.trialId)">查看</a-button>
+                <a-button size="small" type="link" @click="openFeedbackHandle(record.trialId)">处理</a-button>
+              </a-space>
             </template>
             <template v-else>
               {{ text }}
@@ -480,7 +483,7 @@
                 <div>状态：{{ detail.feedback.status || '-' }}</div>
                 <div>反馈：{{ detail.feedback.feedback || '-' }}</div>
                 <div>问题：{{ detail.feedback.issues || '-' }}</div>
-                <div>处理回复：{{ detail.feedback.providerReply || '-' }}</div>
+                <div>中数联处理回复：{{ detail.feedback.providerReply || '-' }}</div>
               </div>
             </div>
           </div>
@@ -488,6 +491,84 @@
 
         <div class="modal-footer">
           <button class="btn-cancel" type="button" @click="closeDetail">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="handleVisible" class="modal-overlay" @click="closeFeedbackHandle">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3>处理试用反馈</h3>
+          <button class="close-btn" type="button" @click="closeFeedbackHandle">×</button>
+        </div>
+
+        <div v-if="handleLoading" class="modal-body">
+          加载中...
+        </div>
+        <div v-else class="modal-body">
+          <div v-if="handleError" class="secondary" style="margin-bottom: 10px;">
+            {{ handleError }}
+          </div>
+
+          <div class="detail-grid">
+            <div class="detail-item">
+              <div class="label">用户</div>
+              <div class="value">{{ handle.user?.name || handle.user?.username || '-' }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="label">行业</div>
+              <div class="value">{{ handle.user?.industry || '-' }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="label">产品</div>
+              <div class="value">{{ handle.product?.name || '-' }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="label">试用状态</div>
+              <div class="value">{{ formatTrialStatus(handle.trial?.status) }}</div>
+            </div>
+
+            <div v-if="handle.feedback" class="detail-item full">
+              <div class="label">用户反馈</div>
+              <div class="value pre">
+                <div>评分：{{ handle.feedback.rating ?? '-' }}</div>
+                <div>意向：{{ handle.feedback.purchaseIntent || '-' }}</div>
+                <div>状态：{{ handle.feedback.status || '-' }}</div>
+                <div>反馈：{{ handle.feedback.feedback || '-' }}</div>
+                <div>问题：{{ handle.feedback.issues || '-' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="handle.feedback" style="margin-top: 14px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label>处理状态</label>
+                <select v-model="handleForm.status" class="select">
+                  <option value="SUBMITTED">已提交</option>
+                  <option value="VIEWED">已查看</option>
+                  <option value="REPLIED">已回复</option>
+                  <option value="CLOSED">已关闭</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>回复内容</label>
+                <textarea v-model="handleForm.providerReply" class="textarea" rows="3" placeholder="填写处理回复（可选）"></textarea>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                  <a-button size="small" type="default" @click="handleForm.providerReply = buildProfessionalReply(handle)">
+                    一键生成专业回复
+                  </a-button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-cancel" type="button" @click="closeFeedbackHandle">关闭</button>
+          <button class="btn-confirm" type="button" :disabled="!handle.feedback || handleSaving" @click="saveFeedbackHandle">
+            {{ handleSaving ? '保存中...' : '保存处理结果' }}
+          </button>
         </div>
       </div>
     </div>
@@ -705,6 +786,88 @@ const detail = reactive({
   solution: null,
   feedback: null
 })
+
+const handleVisible = ref(false)
+const handleLoading = ref(false)
+const handleSaving = ref(false)
+const handleError = ref('')
+const handle = reactive({
+  trial: null,
+  user: null,
+  product: null,
+  feedback: null
+})
+const handleForm = reactive({
+  status: 'VIEWED',
+  providerReply: ''
+})
+
+function purchaseIntentText(v) {
+  const s = String(v || '').toUpperCase()
+  if (s === 'PURCHASED') return '已购买'
+  if (s === 'PENDING') return '考虑中'
+  if (s === 'INTERESTED') return '感兴趣'
+  return '暂无兴趣'
+}
+
+function pickIssueTopics(text) {
+  const msg = String(text || '')
+  const topics = []
+  const rules = [
+    ['性能', ['性能', '卡', '慢', '延迟', '耗时', '超时']],
+    ['稳定性', ['崩溃', '闪退', '报错', '异常', '不可用', '稳定']],
+    ['接口/对接', ['接口', 'API', '对接', '联调', '回调', '鉴权', '签名']],
+    ['数据质量', ['数据', '缺失', '不全', '不准', '口径', '延迟', '更新']],
+    ['权限/账号', ['权限', '账号', '登录', '角色', '授权']],
+    ['部署/环境', ['部署', '安装', '环境', '配置', '网络', '端口']],
+    ['易用性', ['易用', '操作', '交互', '不好用', '引导', '文档']]
+  ]
+  for (const [label, kws] of rules) {
+    if (kws.some(k => msg.includes(k))) topics.push(label)
+    if (topics.length >= 3) break
+  }
+  return topics
+}
+
+function buildProfessionalReply(ctx) {
+  const productName = ctx?.product?.name ? `「${ctx.product.name}」` : '该产品'
+  const rating = Number(ctx?.feedback?.rating)
+  const feedbackText = String(ctx?.feedback?.feedback || '').trim()
+  const issuesText = String(ctx?.feedback?.issues || '').trim()
+  const intent = purchaseIntentText(ctx?.feedback?.purchaseIntent)
+  const topics = pickIssueTopics([feedbackText, issuesText].filter(Boolean).join('；'))
+
+  const lines = []
+  lines.push(`您好，感谢您试用${productName}并提交反馈。我们已收到并安排跟进。`)
+
+  if (Number.isFinite(rating)) {
+    if (rating <= 2) lines.push('非常抱歉本次试用体验未达到您的预期，我们对给您带来的不便表示歉意。')
+    else if (rating === 3) lines.push('感谢您的客观评价，我们会持续优化体验。')
+    else lines.push('感谢您的认可与支持，我们会继续保持并迭代完善。')
+  }
+
+  if (topics.length) {
+    lines.push(`针对您提到的重点（${topics.join('、')}），我们建议先按以下方向处理：`)
+    for (const t of topics) {
+      if (t === '性能') lines.push('- 性能：可先确认数据量/筛选范围与页面并发，必要时我们可协助定位慢点与优化建议。')
+      else if (t === '稳定性') lines.push('- 稳定性：建议提供复现步骤/截图/时间点，我们将协助定位报错原因并给出修复方案。')
+      else if (t === '接口/对接') lines.push('- 接口/对接：可提供对接方系统、调用链路与报文示例，我们支持联调与鉴权参数核对。')
+      else if (t === '数据质量') lines.push('- 数据质量：我们将核对指标口径与更新链路，必要时提供数据说明与校验建议。')
+      else if (t === '权限/账号') lines.push('- 权限/账号：可先确认角色授权范围；如需扩展权限，我们可协助配置并验证。')
+      else if (t === '部署/环境') lines.push('- 部署/环境：建议提供环境信息（网络/域名/访问方式），我们可协助排查连通性与配置项。')
+      else if (t === '易用性') lines.push('- 易用性：我们会根据您的使用路径优化交互与指引，并补齐相关说明。')
+    }
+  } else if (feedbackText || issuesText) {
+    lines.push('针对您反馈的内容，我们已记录并将结合后续版本迭代持续优化。')
+  } else {
+    lines.push('若方便的话，欢迎补充更具体的使用场景与期望效果，以便我们更精准地协助。')
+  }
+
+  lines.push(`当前购买意向：${intent}。如需进一步评估，我们也可以提供版本/部署方式/对接方案建议。`)
+  lines.push('如您愿意继续沟通，可在工作台补充留言，我们会尽快与您跟进。再次感谢！')
+
+  return lines.join('\n')
+}
 
 const trialPagination = reactive({
   current: 1,
@@ -1238,6 +1401,76 @@ async function openDetail(trialId) {
 
 function closeDetail() {
   detailVisible.value = false
+}
+
+async function openFeedbackHandle(trialId) {
+  handleVisible.value = true
+  handleLoading.value = true
+  handleSaving.value = false
+  handleError.value = ''
+  handle.trial = null
+  handle.user = null
+  handle.product = null
+  handle.feedback = null
+  handleForm.status = 'VIEWED'
+  handleForm.providerReply = ''
+
+  try {
+    const res = await adminAPI.trialRequestDetail(trialId)
+    const d = res.data.data || {}
+    handle.trial = d.trial || null
+    handle.user = d.user || null
+    handle.product = d.product || null
+    handle.feedback = d.feedback || null
+    if (!handle.feedback) {
+      handleError.value = '该试用暂无用户反馈，暂不可处理。'
+    } else {
+      handleForm.status = String(handle.feedback.status || 'SUBMITTED')
+      handleForm.providerReply = handle.feedback.providerReply == null ? '' : String(handle.feedback.providerReply)
+    }
+  } catch (e) {
+    handleError.value = e?.message ? String(e.message) : '加载失败'
+  } finally {
+    handleLoading.value = false
+  }
+}
+
+function closeFeedbackHandle() {
+  handleVisible.value = false
+  handleLoading.value = false
+  handleSaving.value = false
+  handleError.value = ''
+}
+
+async function saveFeedbackHandle() {
+  if (!handle.feedback?.id) return
+  handleSaving.value = true
+  handleError.value = ''
+  try {
+    const res = await feedbackAPI.update(handle.feedback.id, {
+      status: handleForm.status,
+      providerReply: handleForm.providerReply
+    })
+    const fb = res?.data?.data || null
+    if (fb) {
+      handle.feedback = fb
+    } else {
+      handle.feedback.status = handleForm.status
+      handle.feedback.providerReply = handleForm.providerReply
+    }
+    window.dispatchEvent(new CustomEvent('demo-toast', { detail: { type: 'success', message: '已保存处理结果' } }))
+    // 刷新试用列表并关闭弹窗
+    try {
+      await loadTrials()
+    } catch (e) {
+      // ignore
+    }
+    closeFeedbackHandle()
+  } catch (e) {
+    handleError.value = e?.message ? String(e.message) : '保存失败'
+  } finally {
+    handleSaving.value = false
+  }
 }
 
 function trialStatusTagColor(status) {

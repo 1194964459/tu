@@ -704,7 +704,7 @@ textarea::placeholder,
   100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); }
 }
 
-.ai-panel { width: 420px; height: 70vh; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); display: flex; flex-direction: column; }
+.ai-panel { width: 420px; height: 76vh; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 18px 50px rgba(0,0,0,0.18); border: 1px solid rgba(5, 5, 5, 0.08); display: flex; flex-direction: column; }
 
 .ai-panel__header { height: 52px; padding: 30px 14px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, #ff4d4f 0%, #f79319); border-bottom: 1px solid rgba(5, 5, 5, 0.06); }
 .ai-panel__title { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; color: #ffffff; }

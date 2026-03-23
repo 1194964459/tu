@@ -70,7 +70,9 @@
         <div v-for="trial in trials" :key="trial.id" class="trial-card">
           <div class="trial-header">
             <div class="trial-product">{{ getProductName(trial.productId) }}</div>
-            <span class="trial-status" :class="trial.status">{{ trial.statusText }}</span>
+            <span class="trial-status-tag" :class="trialStatusClass(trial.status)">
+              试用进度：{{ trial.statusText }}
+            </span>
           </div>
           
           <div class="trial-info">
@@ -83,7 +85,7 @@
               <span>{{ formatDate(trial.startTime) }} - {{ formatDate(trial.endTime) }}</span>
             </div>
             <div v-if="trial.feedback" class="trial-item">
-              <span class="label">反馈状态</span>
+              <span class="label">试用反馈状态</span>
               <span>{{ feedbackStatusText(trial.feedback.status) }}</span>
             </div>
           </div>
@@ -283,6 +285,11 @@ const statusMap = {
   EXPIRED: { text: '已过期', class: 'expired' }
 }
 
+function trialStatusClass(status) {
+  const s = String(status || '').toUpperCase()
+  return statusMap[s]?.class || 'pending'
+}
+
 onMounted(async () => {
   window.addEventListener('demo-product-prefs-changed', onPrefsChanged)
   await loadData()
@@ -323,7 +330,7 @@ async function loadData() {
     
     trials.value = (trialsRes.data.data || []).map(t => ({
       ...t,
-      statusText: statusMap[t.status]?.text || t.status,
+      statusText:  statusMap[t.status]?.text || t.status,
       feedback: null
     }))
     products.value = productsRes.data.data || []
@@ -640,11 +647,11 @@ function downloadTrialReport(trial) {
 .trial-card { background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(5, 5, 5, 0.1);}
 .trial-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .trial-product { font-size: 18px; font-weight: 600; }
-.trial-status { padding: 4px 12px; border-radius: 12px; font-size: 12px; }
-.trial-status.running { background: #e8f5e9; color: #2e7d32; }
-.trial-status.completed { background: #e3f2fd; color: #1565c0; }
-.trial-status.pending { background: #fff3e0; color: #ef6c00; }
-.trial-status.expired { background: #ffebee; color: #c62828; }
+.trial-status-tag { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid transparent; }
+.trial-status-tag.running { background: rgba(34, 197, 94, 0.12); color: #2e7d32; border-color: rgba(34, 197, 94, 0.22); }
+.trial-status-tag.completed { background: rgba(22, 119, 255, 0.10); color: #1565c0; border-color: rgba(22, 119, 255, 0.20); }
+.trial-status-tag.pending { background: rgba(250, 173, 20, 0.12); color: #ef6c00; border-color: rgba(250, 173, 20, 0.22); }
+.trial-status-tag.expired { background: rgba(255, 77, 79, 0.10); color: #c62828; border-color: rgba(255, 77, 79, 0.20); }
 
 .trial-info { display: flex; gap: 32px; margin-bottom: 16px; }
 .trial-item { display: flex; flex-direction: column; gap: 4px; }
