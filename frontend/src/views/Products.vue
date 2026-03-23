@@ -27,9 +27,17 @@
         <button class="filter-btn" :class="{ active: selectedSource === 'INTERNAL' }" type="button" @click="selectedSource = 'INTERNAL'">自研</button>
       </div>
       <div class="filters">
-        <button class="filter-btn" :class="{ active: selectedGroup === 'ALL' }" type="button" @click="setGroup('ALL')" style="width:104px">全部：</button>
-        <button class="filter-btn" :class="{ active: selectedGroup === 'BUSINESS' }" type="button" @click="setGroup('BUSINESS')">业务类</button>
-        <button class="filter-btn" :class="{ active: selectedGroup === 'PUBLIC' }" type="button" @click="setGroup('PUBLIC')">公共服务</button>
+        <button class="filter-btn" :class="{ active: selectedSystem === 'ALL' }" type="button" @click="selectedSystem = 'ALL'" style="width:104px">全部体系：</button>
+        <button
+          v-for="s in productSystems"
+          :key="s"
+          class="filter-btn"
+          type="button"
+          :class="{ active: selectedSystem === s }"
+          @click="selectedSystem = s"
+        >
+          {{ s }}
+        </button>
       </div>
 
       <div class="filters">
@@ -42,9 +50,20 @@
      
       
       <div class="filters">
-        <button class="filter-btn" :class="{ active: !selectedCategory }" type="button" @click="setCategory('')">全部分类：</button>
+        <!-- <button class="filter-btn" :class="{ active: !selectedCategory }" type="button" @click="setCategory('')">全部分类：</button>
         <button v-for="cat in visibleCategories" :key="cat" class="filter-btn" type="button" :class="{ active: selectedCategory === cat }" @click="setCategory(cat)">
           {{ cat }}
+        </button> -->
+        <button class="filter-btn" :class="{ active: selectedScene === 'ALL' }" type="button" @click="selectedScene = 'ALL'">全部场景：</button>
+        <button
+          v-for="s in verticalScenes"
+          :key="s"
+          class="filter-btn"
+          type="button"
+          :class="{ active: selectedScene === s }"
+          @click="selectedScene = s"
+        >
+          {{ s }}
         </button>
       </div>
 
@@ -143,9 +162,8 @@ import { addViewedProduct, readFavorites, toggleFavorite } from '../lib/productP
 const stats = ref({ totalProducts: 6, totalTrials: 150, satisfaction: 92 })
 
 const products = ref([])
-const categories = ref([])
-const selectedGroup = ref('ALL')
-const selectedCategory = ref('')
+const selectedSystem = ref('ALL')
+const selectedScene = ref('ALL')
 const selectedGranularity = ref('ALL')
 const selectedSource = ref('ALL')
 const keyword = ref('')
@@ -154,26 +172,35 @@ const prefsVersion = ref(0)
 const route = useRoute()
 const router = useRouter()
 
+const productSystems = [
+  '物流行业数字化基础平台',
+  '数据要素产品',
+  '数智技术产品',
+  '物流行业场景解决方案',
+  '企业数智供应链产品',
+  '物流供应链增值服务'
+]
+
+const verticalScenes = [
+  '智慧港航',
+  '智慧口岸',
+  '智慧长江',
+  '数字仓管',
+  '网络货运',
+  '航空物流',
+  '航贸数字化',
+  '多式联运'
+]
+
 const favorites = computed(() => {
   prefsVersion.value
   return readFavorites()
 })
 
-const visibleCategories = computed(() => {
-  const list = Array.from(new Set((categories.value || []).filter(Boolean).map(String)))
-  if (selectedGroup.value === 'ALL') return list
-  if (selectedGroup.value === 'BUSINESS') return list.filter(isBusinessCategory)
-  if (selectedGroup.value === 'PUBLIC') return list.filter(c => !isBusinessCategory(c))
-  return list
-})
-
 const filteredProducts = computed(() => {
   let result = products.value
-  if (selectedGroup.value === 'BUSINESS') result = result.filter(p => isBusinessCategory(p.category))
-  if (selectedGroup.value === 'PUBLIC') result = result.filter(p => !isBusinessCategory(p.category))
-  if (selectedCategory.value) {
-    result = result.filter(p => p.category === selectedCategory.value)
-  }
+  if (selectedSystem.value !== 'ALL') result = result.filter(p => String(p?.category || '') === selectedSystem.value)
+  if (selectedScene.value !== 'ALL') result = result.filter(p => String(p?.scenarios || '').includes(selectedScene.value))
   if (selectedGranularity.value !== 'ALL') {
     result = result.filter(p => granularityOfProduct(p) === selectedGranularity.value)
   }
@@ -189,14 +216,9 @@ const filteredProducts = computed(() => {
 onMounted(async () => {
   window.addEventListener('demo-product-prefs-changed', onPrefsChanged)
   try {
-    const [productsRes, catsRes] = await Promise.all([
-      productAPI.list(),
-      productAPI.categories()
-    ])
+    const productsRes = await productAPI.list()
     products.value = productsRes.data.data || []
     stats.value.totalProducts = Number(productsRes.data.total) || products.value.length || 0
-    categories.value = catsRes.data.data || []
-    syncCategoryFromQuery()
   } catch (e) {
     console.error(e)
   }
@@ -208,35 +230,6 @@ onUnmounted(() => {
 
 function searchProducts() {
   // 自动触发 computed
-}
-
-function syncCategoryFromQuery() {
-  const q = route.query.category
-  if (typeof q === 'string') {
-    selectedCategory.value = q || ''
-    return
-  }
-  selectedCategory.value = ''
-}
-
-watch(
-  () => route.query.category,
-  () => syncCategoryFromQuery()
-)
-
-function setCategory(cat) {
-  selectedCategory.value = cat || ''
-  const nextQuery = { ...route.query }
-  if (selectedCategory.value) nextQuery.category = selectedCategory.value
-  else delete nextQuery.category
-  router.replace({ query: nextQuery })
-}
-
-function setGroup(g) {
-  selectedGroup.value = g
-  if (selectedCategory.value && !visibleCategories.value.includes(selectedCategory.value)) {
-    setCategory('')
-  }
 }
 
 function openProduct(product) {
@@ -291,26 +284,16 @@ function firstScenario(product) {
   return String(sc).split(',')[0]?.trim() || ''
 }
 
-function isBusinessCategory(c) {
-  const s = String(c || '')
-  const business = ['仓储管理', '运输管理', '订单管理', '供应链', '国际货代/关务', '关务', '货代', '报关', '港航']
-  return business.some(k => s.includes(k))
-}
-
 function granularityOfProduct(p) {
   const name = String(p?.name || '')
-  const category = String(p?.category || '')
   const desc = String(p?.description || '')
   const cap = String(p?.capability || '')
 
   const sysHints = ['WMS', 'TMS', 'OMS', 'ERP', 'SCM', '平台', '系统']
   if (sysHints.some(k => name.toUpperCase().includes(k) || desc.includes(k))) return 'SYSTEM'
-  if (category.includes('管理')) return 'SYSTEM'
 
   const atomicHints = ['API', 'SDK', '算法', '模型', 'OCR', '识别', '优化', '接口']
-  const publicService = !isBusinessCategory(category)
-  if (publicService && atomicHints.some(k => cap.toUpperCase().includes(k) || desc.includes(k) || name.toUpperCase().includes(k))) return 'ATOMIC'
-  if (publicService) return 'MODULE'
+  if (atomicHints.some(k => cap.toUpperCase().includes(k) || desc.includes(k) || name.toUpperCase().includes(k))) return 'ATOMIC'
   return 'MODULE'
 }
 
