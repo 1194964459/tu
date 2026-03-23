@@ -12,7 +12,7 @@
           <span
             class="running-spinner running-mask"
             aria-hidden="true"
-            :style="{ WebkitMaskImage: `url(${runningIcon})`, maskImage: `url(${runningIcon})` }"
+            :style="{ WebkitMaskImage: `url('${runningIcon}')`, maskImage: `url('${runningIcon}')` }"
           ></span>
         </div>
         <div class="stat-info">
@@ -214,7 +214,7 @@
             </div>
           </div>
         </div>
-        
+
         
         <div class="modal-footer">
           <button class="btn-cancel" @click="showFeedbackModal = false">取消</button>
@@ -231,8 +231,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { trialAPI, productAPI, feedbackAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
 import { readFavorites } from '../lib/productPrefs'
-import runningIcon from '@/assets/icons/xunhuan.svg'
-// import runningIcon from '@/assets/icons/xh.svg'
+const runningIcon = `${import.meta.env.BASE_URL}icons/xunhuan.svg`
 
 
 const trials = ref([])

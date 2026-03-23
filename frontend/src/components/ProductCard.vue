@@ -92,16 +92,22 @@ function toggleFav() {
   toggleFavorite(props.product?.id)
 }
 
+function parseTopList(raw, maxCount = 3) {
+  const text = String(raw || '').trim()
+  if (!text) return ''
+  const parts = text
+    .split(/[,，/、\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+  return Array.from(new Set(parts)).slice(0, maxCount).join('、')
+}
+
 const capabilityText = computed(() => {
-  const cap = props.product?.capability
-  if (!cap) return ''
-  return String(cap).split(',')[0]?.trim() || ''
+  return parseTopList(props.product?.capability, 3)
 })
 
 const scenarioText = computed(() => {
-  const sc = props.product?.scenarios
-  if (!sc) return ''
-  return String(sc).split(',')[0]?.trim() || ''
+  return parseTopList(props.product?.scenarios, 3)
 })
 </script>
 

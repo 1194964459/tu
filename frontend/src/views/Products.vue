@@ -21,13 +21,27 @@
     </div>
          
     <div class="product-toolbar">
-       <div class="filters">
+       <!-- <div class="filters">
         <button class="filter-btn" :class="{ active: selectedSource === 'ALL' }" type="button" @click="selectedSource = 'ALL'">全部来源：</button>
         <button class="filter-btn" :class="{ active: selectedSource === 'THIRD' }" type="button" @click="selectedSource = 'THIRD'">行业生态（第三方）</button>
         <button class="filter-btn" :class="{ active: selectedSource === 'INTERNAL' }" type="button" @click="selectedSource = 'INTERNAL'">自研</button>
+      </div> -->
+        <div class="filters">
+        <button class="filter-btn" :class="{ active: selectedServiceType === 'ALL' }" type="button" @click="selectedServiceType = 'ALL'" >服务类型：</button>
+        <button
+          v-for="t in serviceTypes"
+          :key="t"
+          class="filter-btn"
+          type="button"
+          :class="{ active: selectedServiceType === t }"
+          @click="selectedServiceType = t"
+        >
+          {{ t }}
+        </button>
       </div>
+
       <div class="filters">
-        <button class="filter-btn" :class="{ active: selectedSystem === 'ALL' }" type="button" @click="selectedSystem = 'ALL'" style="width:104px">全部体系：</button>
+        <button class="filter-btn" :class="{ active: selectedSystem === 'ALL' }" type="button" @click="selectedSystem = 'ALL'">六大产品体系：</button>
         <button
           v-for="s in productSystems"
           :key="s"
@@ -40,21 +54,19 @@
         </button>
       </div>
 
-      <div class="filters">
-        <button class="filter-btn" :class="{ active: selectedGranularity === 'ALL' }" type="button" @click="selectedGranularity = 'ALL'">全部粒度：</button>
-        <button class="filter-btn" :class="{ active: selectedGranularity === 'SYSTEM' }" type="button" @click="selectedGranularity = 'SYSTEM'">系统型</button>
-        <button class="filter-btn" :class="{ active: selectedGranularity === 'MODULE' }" type="button" @click="selectedGranularity = 'MODULE'">模块型</button>
-        <button class="filter-btn" :class="{ active: selectedGranularity === 'ATOMIC' }" type="button" @click="selectedGranularity = 'ATOMIC'">原子型</button>
-      </div>
 
-     
+      <!-- <div class="filters">
+        <button class="filter-btn" :class="{ active: selectedSource === 'ALL' }" type="button" @click="selectedSource = 'ALL'" >是否第三方：</button>
+        <button class="filter-btn" :class="{ active: selectedSource === 'THIRD' }" type="button" @click="selectedSource = 'THIRD'">第三方</button>
+        <button class="filter-btn" :class="{ active: selectedSource === 'INTERNAL' }" type="button" @click="selectedSource = 'INTERNAL'">非第三方</button>
+      </div> -->     
       
       <div class="filters">
         <!-- <button class="filter-btn" :class="{ active: !selectedCategory }" type="button" @click="setCategory('')">全部分类：</button>
         <button v-for="cat in visibleCategories" :key="cat" class="filter-btn" type="button" :class="{ active: selectedCategory === cat }" @click="setCategory(cat)">
           {{ cat }}
         </button> -->
-        <button class="filter-btn" :class="{ active: selectedScene === 'ALL' }" type="button" @click="selectedScene = 'ALL'">全部场景：</button>
+        <button class="filter-btn" :class="{ active: selectedScene === 'ALL' }" type="button" @click="selectedScene = 'ALL'">八大垂类场景：</button>
         <button
           v-for="s in verticalScenes"
           :key="s"
@@ -65,6 +77,13 @@
         >
           {{ s }}
         </button>
+      </div>
+
+      <div class="filters">
+        <button class="filter-btn" :class="{ active: selectedGranularity === 'ALL' }" type="button" @click="selectedGranularity = 'ALL'">全部粒度：</button>
+        <button class="filter-btn" :class="{ active: selectedGranularity === 'SYSTEM' }" type="button" @click="selectedGranularity = 'SYSTEM'">系统型</button>
+        <button class="filter-btn" :class="{ active: selectedGranularity === 'MODULE' }" type="button" @click="selectedGranularity = 'MODULE'">模块型</button>
+        <button class="filter-btn" :class="{ active: selectedGranularity === 'ATOMIC' }" type="button" @click="selectedGranularity = 'ATOMIC'">原子型</button>
       </div>
 
     </div>
@@ -153,8 +172,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { productAPI } from '../api'
 import ProductCard from '../components/ProductCard.vue'
 import { addViewedProduct, readFavorites, toggleFavorite } from '../lib/productPrefs'
@@ -164,12 +183,12 @@ const stats = ref({ totalProducts: 6, totalTrials: 150, satisfaction: 92 })
 const products = ref([])
 const selectedSystem = ref('ALL')
 const selectedScene = ref('ALL')
+const selectedServiceType = ref('ALL')
 const selectedGranularity = ref('ALL')
 const selectedSource = ref('ALL')
 const keyword = ref('')
 const viewMode = ref(localStorage.getItem('demo-products-view') === 'list' ? 'list' : 'card')
 const prefsVersion = ref(0)
-const route = useRoute()
 const router = useRouter()
 
 const productSystems = [
@@ -179,6 +198,12 @@ const productSystems = [
   '物流行业场景解决方案',
   '企业数智供应链产品',
   '物流供应链增值服务'
+]
+
+const serviceTypes = [
+  '数据公共服务',
+  '行业动态检测',
+  '数据产业生态'
 ]
 
 const verticalScenes = [
@@ -201,6 +226,7 @@ const filteredProducts = computed(() => {
   let result = products.value
   if (selectedSystem.value !== 'ALL') result = result.filter(p => String(p?.category || '') === selectedSystem.value)
   if (selectedScene.value !== 'ALL') result = result.filter(p => String(p?.scenarios || '').includes(selectedScene.value))
+  if (selectedServiceType.value !== 'ALL') result = result.filter(p => String(p?.serviceType || '') === selectedServiceType.value)
   if (selectedGranularity.value !== 'ALL') {
     result = result.filter(p => granularityOfProduct(p) === selectedGranularity.value)
   }
@@ -273,15 +299,23 @@ function isThirdPartyProduct(product) {
 }
 
 function firstCapability(product) {
-  const cap = product?.capability
-  if (!cap) return ''
-  return String(cap).split(',')[0]?.trim() || ''
+  const text = String(product?.capability || '').trim()
+  if (!text) return ''
+  const parts = text
+    .split(/[,，/、\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+  return Array.from(new Set(parts)).slice(0, 3).join('、')
 }
 
 function firstScenario(product) {
-  const sc = product?.scenarios
-  if (!sc) return ''
-  return String(sc).split(',')[0]?.trim() || ''
+  const text = String(product?.scenarios || '').trim()
+  if (!text) return ''
+  const parts = text
+    .split(/[,，/、\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+  return Array.from(new Set(parts)).slice(0, 3).join('、')
 }
 
 function granularityOfProduct(p) {
@@ -313,8 +347,8 @@ function granularityLabel(v) {
 
 .product-toolbar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
 .filters { display: flex; gap: 12px; flex-wrap: wrap; }
-.filter-btn { padding: 8px 16px; border: 1px solid #e0e0e0; background: #fff; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
-.filter-btn:first-child { border-radius: 4px}
+.filter-btn { padding: 8px; border: 1px solid #e0e0e0; background: #fff; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.filter-btn:first-child { border-radius: 4px; width: 116px; text-align: left;}
 .filter-btn:hover { border-color: #0066ff; color: #0066ff; }
 .filter-btn.active { background: #0066ff; color: #fff; border-color: #0066ff; }
 

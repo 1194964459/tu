@@ -31,16 +31,92 @@ function normalizePrice(v) {
   return Number.isFinite(n) ? n : null
 }
 
+function stripExampleMark(v) {
+  return String(v || '').replace(/\s*[（(]示例[）)]\s*/g, '').trim()
+}
+
+function splitListText(raw) {
+  const text = String(raw || '').trim()
+  if (!text) return []
+  return text
+    .split(/[,，/、\n]+/)
+    .map(s => s.trim())
+    .filter(Boolean)
+}
+
+function uniqList(list) {
+  const seen = new Set()
+  const out = []
+  for (const it of list || []) {
+    const s = String(it || '').trim()
+    if (!s || seen.has(s)) continue
+    seen.add(s)
+    out.push(s)
+  }
+  return out
+}
+
+function limitListText(raw, maxCount) {
+  return uniqList(splitListText(raw)).slice(0, maxCount).join(',')
+}
+
+function inferServiceType(product) {
+  const category = String(product?.category || '')
+  const sourceType = String(product?.sourceType || '').toUpperCase()
+  if (sourceType === 'THIRD' || sourceType === 'PARTNER') return '数据产业生态'
+  if (category.includes('数字化基础平台') || category.includes('数据要素')) return '数据公共服务'
+  if (category.includes('场景解决方案') || category.includes('数智技术')) return '行业动态检测'
+  if (category.includes('企业数智供应链') || category.includes('增值服务')) return '数据产业生态'
+  return '数据公共服务'
+}
+
+function shortCategory(cat) {
+  const s = String(cat || '')
+  if (s.includes('数字化基础平台')) return '基础平台'
+  if (s.includes('数据要素')) return '数据要素'
+  if (s.includes('数智技术')) return '技术产品'
+  if (s.includes('场景解决方案')) return '场景方案'
+  if (s.includes('企业数智供应链')) return '企业产品'
+  if (s.includes('增值服务')) return '增值服务'
+  return s || '产品'
+}
+
+function dedupeProductNames(list) {
+  const map = new Map()
+  let renamed = false
+  for (const p of list || []) {
+    const base = String(p?.name || '').trim()
+    if (!base) continue
+    const count = map.get(base) || 0
+    if (count === 0) {
+      map.set(base, 1)
+      continue
+    }
+    // duplicate: append short category or incremental suffix
+    const cat = shortCategory(p?.category)
+    let candidate = `${base} - ${cat}`
+    let idx = 2
+    while (list.some(x => x !== p && String(x?.name || '') === candidate)) {
+      candidate = `${base} - ${cat}${idx}`
+      idx += 1
+    }
+    p.name = candidate
+    map.set(base, count + 1)
+    renamed = true
+  }
+  return renamed
+}
+
 function seedProducts() {
   const baseTime = nowISO()
-  return [
+  const list = [
     {
       id: 1,
-      name: '国家级物流大数据平台（示例）',
+      name: '国家级物流大数据平台',
       category: '物流行业数字化基础平台',
       description: '公共型、开放型的行业数据基础设施，提供数据汇聚、治理、共享与服务能力',
-      capability: '数据汇聚,连接,数据治理,数据服务,安全运营',
-      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运',
+      capability: '数据汇聚,数据治理,数据目录,数据共享,服务编排,API网关,权限管理,安全审计,运行监控',
+      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运,政府监管,应急调度',
       price: 0,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -58,11 +134,11 @@ function seedProducts() {
     },
     {
       id: 2,
-      name: '物流行业可信数据空间（示例）',
+      name: '物流行业可信数据空间',
       category: '物流行业数字化基础平台',
       description: '面向行业数据安全可信流通的空间底座，支持确权、脱敏、授权与审计',
-      capability: '可信计算,隐私保护,数据确权,授权管理,审计追踪',
-      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运',
+      capability: '可信计算,隐私保护,安全多方计算,脱敏加工,数据确权,授权管理,审计追踪,合规评估,安全沙箱',
+      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运,跨主体协同,数据交易',
       price: 0,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -80,11 +156,11 @@ function seedProducts() {
     },
     {
       id: 3,
-      name: '航贸数字化平台（示例）',
+      name: '航贸数字化平台',
       category: '物流行业数字化基础平台',
       description: '面向港口航运与口岸贸易的数据交换与协同平台，提升通关与运输效率',
-      capability: '舱单运单协同,节点可视,数据交换,对外协同接口',
-      scenarios: '智慧港航,智慧口岸,航贸数字化,跨境物流,多式联运',
+      capability: '舱单运单协同,节点可视,数据交换,单证协同,对外协同接口,异常预警,时效承诺,状态订阅',
+      scenarios: '航贸数字化,智慧港航,智慧口岸,跨境物流,多式联运,单证流转,通关协同',
       price: 0,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -102,11 +178,11 @@ function seedProducts() {
     },
     {
       id: 4,
-      name: '行业智算连接底座（示例）',
+      name: '行业智算连接底座',
       category: '物流行业数字化基础平台',
       description: '为行业应用提供算力、模型、连接与安全运营的一体化底座能力',
-      capability: '智算,连接,模型服务,安全运营,弹性扩展',
-      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运',
+      capability: '智算,连接,模型服务,向量检索,流式计算,弹性扩展,灰度发布,安全运营,可观测性',
+      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运,行业应用AI化',
       price: 0,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -124,11 +200,11 @@ function seedProducts() {
     },
     {
       id: 5,
-      name: '有效降低全社会物流成本指数数据集（示例）',
+      name: '有效降低全社会物流成本指数数据集',
       category: '数据要素产品',
       description: '面向宏观决策与行业研判的指标数据产品，支持多维度分析与对标',
-      capability: '指标体系,数据集,趋势分析,对标分析',
-      scenarios: '智慧港航,智慧口岸,智慧长江,网络货运,航空物流,航贸数字化,多式联运',
+      capability: '指标体系,数据集,趋势分析,对标分析,区域画像,行业画像,归因分析,可视化报表',
+      scenarios: '宏观研判,行业对标,智慧港航,智慧口岸,智慧长江,网络货运,航空物流,航贸数字化,多式联运',
       price: 3,
       version: 'v2026.1',
       providerName: '中国数联（示例）',
@@ -146,11 +222,11 @@ function seedProducts() {
     },
     {
       id: 6,
-      name: '港航时效基准数据产品（示例）',
+      name: '港航时效基准数据产品',
       category: '数据要素产品',
       description: '沉淀港口/航线/班轮等关键链路的时效基准数据，支撑预测与优化',
-      capability: '时效基准,时效预测,拥堵分析',
-      scenarios: '智慧港航,智慧长江,航贸数字化',
+      capability: '时效基准,时效预测,拥堵分析,链路拆解,节点归因,时效对标,延误预警',
+      scenarios: '智慧港航,智慧长江,航贸数字化,跨境物流,港口调度',
       price: 2,
       version: 'v2026.1',
       providerName: '中国数联（示例）',
@@ -168,11 +244,11 @@ function seedProducts() {
     },
     {
       id: 7,
-      name: '口岸通关态势数据产品（示例）',
+      name: '口岸通关态势数据产品',
       category: '数据要素产品',
       description: '汇聚口岸与监管相关数据，形成通关态势监测与预警的数据产品',
-      capability: '态势监测,风险预警,数据画像',
-      scenarios: '智慧口岸,航贸数字化,跨境物流',
+      capability: '态势监测,风险预警,数据画像,异常识别,指标看板,口岸对标,政策影响分析',
+      scenarios: '智慧口岸,航贸数字化,跨境物流,通关协同,合规风控',
       price: 2,
       version: 'v2026.1',
       providerName: '中国数联（示例）',
@@ -190,11 +266,11 @@ function seedProducts() {
     },
     {
       id: 8,
-      name: '运力画像与线路路由数据产品（示例）',
+      name: '运力画像与线路路由数据产品',
       category: '数据要素产品',
       description: '沉淀承运商、线路、时效与运价等数据，支持运力匹配与调度优化',
-      capability: '运力画像,线路路由,运价分析,调度优化',
-      scenarios: '网络货运,多式联运,航空物流',
+      capability: '运力画像,线路路由,运价分析,时效预测,供需匹配,调度优化,风控评分,账期分析',
+      scenarios: '网络货运,多式联运,航空物流,干线运输,城配调度',
       price: 2,
       version: 'v2026.1',
       providerName: '中国数联（示例）',
@@ -212,11 +288,11 @@ function seedProducts() {
     },
     {
       id: 9,
-      name: '物流知识图谱引擎（示例）',
+      name: '物流知识图谱引擎',
       category: '数智技术产品',
       description: '融合行业知识与业务实体关系，支撑智能问答、关联分析与推荐',
-      capability: '知识图谱,图查询,行业知识,推荐',
-      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运',
+      capability: '知识图谱,图谱构建,图查询,实体消歧,关系推理,行业知识,智能检索,智能推荐',
+      scenarios: '智慧港航,智慧口岸,智慧长江,数字仓管,网络货运,航空物流,航贸数字化,多式联运,智能问答,关联分析',
       price: 12,
       version: 'v2.0',
       providerName: '中国数联（示例）',
@@ -234,11 +310,11 @@ function seedProducts() {
     },
     {
       id: 10,
-      name: 'OCR 票据识别 API（示例）',
+      name: 'OCR 票据识别 API',
       category: '数智技术产品',
       description: '提供运单/舱单/发票等票据 OCR 识别能力，支持接口级快速接入',
-      capability: 'OCR,识别,API',
-      scenarios: '智慧口岸,航贸数字化,数字仓管',
+      capability: 'OCR识别,版面解析,字段抽取,结构化输出,质检校验,图片增强,高并发API,多模板适配',
+      scenarios: '智慧口岸,航贸数字化,数字仓管,单证自动化,票据录入',
       price: 8,
       version: 'v1.2',
       providerName: '生态伙伴A（示例）',
@@ -256,11 +332,11 @@ function seedProducts() {
     },
     {
       id: 11,
-      name: '运输路径优化算法服务（示例）',
+      name: '运输路径优化算法服务',
       category: '数智技术产品',
       description: '面向城市配送与干线运输的路径规划与车辆调度优化算法服务',
-      capability: '算法,优化,API',
-      scenarios: '网络货运,多式联运',
+      capability: '路径规划,车辆调度,约束建模,算法优化,仿真评估,API服务,弹性扩容,成本测算',
+      scenarios: '网络货运,多式联运,城配调度,干线运输,应急运输',
       price: 15,
       version: 'v1.0',
       providerName: '生态伙伴B（示例）',
@@ -278,11 +354,11 @@ function seedProducts() {
     },
     {
       id: 12,
-      name: '异常预警与时效预测模型（示例）',
+      name: '异常预警与时效预测模型',
       category: '数智技术产品',
       description: '基于历史链路与实时态势数据构建预测模型，支撑异常预警与时效承诺',
-      capability: '模型,预测,异常预警,时效承诺',
-      scenarios: '航空物流,智慧港航,智慧长江,网络货运',
+      capability: '时效预测,异常预警,延误归因,阈值策略,模型训练,模型评估,在线推理,告警编排',
+      scenarios: '航空物流,智慧港航,智慧长江,网络货运,航贸数字化,多式联运',
       price: 18,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -300,11 +376,11 @@ function seedProducts() {
     },
     {
       id: 13,
-      name: '智慧港航解决方案（示例）',
+      name: '智慧港航解决方案',
       category: '物流行业场景解决方案',
       description: '面向港口与航运协同的可视化、调度与异常处置解决方案',
-      capability: '节点可视,拥堵分析,协同调度,异常处置',
-      scenarios: '智慧港航,航贸数字化',
+      capability: '节点可视,船期管理,拥堵分析,资源排班,协同调度,异常处置,对外协同接口,指标看板',
+      scenarios: '智慧港航,航贸数字化,港口作业协同,船期可视化',
       price: 80,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -322,11 +398,11 @@ function seedProducts() {
     },
     {
       id: 14,
-      name: '智慧口岸解决方案（示例）',
+      name: '智慧口岸解决方案',
       category: '物流行业场景解决方案',
       description: '面向口岸通关与监管协同的态势监测、风控与通关效率提升方案',
-      capability: '态势监测,风险预警,通关协同,数据共享',
-      scenarios: '智慧口岸,航贸数字化',
+      capability: '态势监测,风险预警,通关协同,单证协同,数据共享,异常处置,对标分析,合规审计',
+      scenarios: '智慧口岸,航贸数字化,通关协同,跨境物流',
       price: 75,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -344,11 +420,11 @@ function seedProducts() {
     },
     {
       id: 15,
-      name: '智慧长江解决方案（示例）',
+      name: '智慧长江解决方案',
       category: '物流行业场景解决方案',
       description: '面向内河航运的态势感知、通行组织与应急联动的数字化方案',
-      capability: '数字孪生,态势感知,应急联动,通行组织',
-      scenarios: '智慧长江,智慧港航',
+      capability: '数字孪生,态势感知,通行组织,应急联动,事件监测,水位预警,拥堵研判,协同调度',
+      scenarios: '智慧长江,智慧港航,内河航运,应急保障',
       price: 70,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -366,11 +442,11 @@ function seedProducts() {
     },
     {
       id: 16,
-      name: '数字仓管解决方案（示例）',
+      name: '数字仓管解决方案',
       category: '物流行业场景解决方案',
       description: '面向仓配一体的库存、作业与可视化管理方案，提升仓内作业效率',
-      capability: '库存可视,波次策略,异常管理,作业分析',
-      scenarios: '数字仓管',
+      capability: '库存可视,波次策略,库位管理,拣选优化,异常管理,作业分析,盘点管理,绩效看板',
+      scenarios: '数字仓管,仓配一体,园区仓管,多仓协同',
       price: 55,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -388,11 +464,11 @@ function seedProducts() {
     },
     {
       id: 17,
-      name: '网络货运解决方案（示例）',
+      name: '网络货运解决方案',
       category: '物流行业场景解决方案',
       description: '面向网络货运平台的运力匹配、过程可视与结算对账解决方案',
-      capability: '运力匹配,在途可视,结算对账,风控',
-      scenarios: '网络货运',
+      capability: '运力匹配,在途可视,结算对账,电子合同,风控,异常预警,运价分析,账期管理',
+      scenarios: '网络货运,干线运输,城配调度',
       price: 65,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -410,11 +486,11 @@ function seedProducts() {
     },
     {
       id: 18,
-      name: '航空物流协同解决方案（示例）',
+      name: '航空物流协同解决方案',
       category: '物流行业场景解决方案',
       description: '面向航司、机场与货代的协同网络，提升运单/舱单/状态数据交换效率',
-      capability: '状态共享,节点追踪,异常预警,协同网络',
-      scenarios: '航空物流,航贸数字化',
+      capability: '状态共享,节点追踪,异常预警,时效承诺,协同网络,对外协同接口,舱位协同,单证协同',
+      scenarios: '航空物流,航贸数字化,跨境物流,多式联运',
       price: 72,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -432,11 +508,11 @@ function seedProducts() {
     },
     {
       id: 19,
-      name: '多式联运协同解决方案（示例）',
+      name: '多式联运协同解决方案',
       category: '物流行业场景解决方案',
       description: '覆盖铁公水空多种运输方式的计划编排、节点追踪与异常处置协同方案',
-      capability: '计划编排,节点追踪,异常处置,对外协同接口',
-      scenarios: '多式联运,智慧港航,航空物流,智慧口岸',
+      capability: '计划编排,节点追踪,异常处置,对外协同接口,时效承诺,成本测算,协同调度,可视化看板',
+      scenarios: '多式联运,智慧港航,航空物流,智慧口岸,航贸数字化,跨境物流',
       price: 88,
       version: 'v1.0',
       providerName: '中国数联（示例）',
@@ -454,11 +530,11 @@ function seedProducts() {
     },
     {
       id: 20,
-      name: '企业供应链控制塔（示例）',
+      name: '企业供应链控制塔',
       category: '企业数智供应链产品',
       description: '面向货主企业的端到端可视、预警与协同的供应链控制塔产品',
-      capability: '端到端可视,异常预警,协同调度,指标分析',
-      scenarios: '智慧港航,智慧口岸,数字仓管,网络货运,航空物流,航贸数字化,多式联运',
+      capability: '端到端可视,异常预警,协同调度,指标分析,库存洞察,订单跟踪,在途追踪,风险看板',
+      scenarios: '数字仓管,网络货运,航空物流,航贸数字化,多式联运,智慧口岸,智慧港航',
       price: 120,
       version: 'v2.0',
       providerName: '中国数联（示例）',
@@ -476,11 +552,11 @@ function seedProducts() {
     },
     {
       id: 21,
-      name: 'WMS 仓储管理系统（示例）',
+      name: 'WMS 仓储管理系统',
       category: '企业数智供应链产品',
       description: '面向多仓协同的仓储管理系统，支持库位、波次、盘点与策略配置',
-      capability: '入库,出库,库位管理,波次拣选,盘点,库存预警',
-      scenarios: '数字仓管',
+      capability: '入库,出库,库位管理,波次拣选,补货策略,盘点,库存预警,绩效分析',
+      scenarios: '数字仓管,多仓协同,仓配一体,电商仓',
       price: 95,
       version: 'v2.3',
       providerName: '自研团队（示例）',
@@ -498,11 +574,11 @@ function seedProducts() {
     },
     {
       id: 22,
-      name: 'TMS 运输管理系统（示例）',
+      name: 'TMS 运输管理系统',
       category: '企业数智供应链产品',
       description: '覆盖运输计划、承运商协同、在途可视化与结算对账的运输管理系统',
-      capability: '运输计划,承运商协同,在途可视化,结算对账',
-      scenarios: '网络货运,多式联运,航空物流',
+      capability: '运输计划,承运商协同,在途可视化,结算对账,运价管理,异常处理,时效监控,调度排班',
+      scenarios: '网络货运,多式联运,航空物流,干线运输,城配调度',
       price: 110,
       version: 'v3.1',
       providerName: '自研团队（示例）',
@@ -520,11 +596,11 @@ function seedProducts() {
     },
     {
       id: 23,
-      name: 'OMS 订单管理系统（示例）',
+      name: 'OMS 订单管理系统',
       category: '企业数智供应链产品',
       description: '订单全链路管理，支持多渠道接入、拆单合单、履约协同与对账',
-      capability: '多渠道接入,拆单合单,履约协同,对账',
-      scenarios: '航贸数字化,智慧口岸,数字仓管',
+      capability: '多渠道接入,拆单合单,履约协同,对账,库存占用,发货协同,退换货,风控',
+      scenarios: '数字仓管,智慧口岸,航贸数字化,全渠道履约',
       price: 88,
       version: 'v1.8',
       providerName: '自研团队（示例）',
@@ -542,11 +618,11 @@ function seedProducts() {
     },
     {
       id: 24,
-      name: '绿色金融与授信服务（示例）',
+      name: '绿色金融与授信服务',
       category: '物流供应链增值服务',
       description: '面向物流供应链业务的金融服务与授信支持，提升资金周转效率',
-      capability: '授信,结算,融资,风控',
-      scenarios: '网络货运,智慧港航,航贸数字化',
+      capability: '授信,结算,融资,风控,账期管理,对账协同,合规校验,票据管理',
+      scenarios: '网络货运,智慧港航,航贸数字化,多式联运',
       price: null,
       version: 'v1.0',
       providerName: '金融伙伴（示例）',
@@ -564,11 +640,11 @@ function seedProducts() {
     },
     {
       id: 25,
-      name: '供应链保险与风控服务（示例）',
+      name: '供应链保险与风控服务',
       category: '物流供应链增值服务',
       description: '提供履约保障、货损保障等保险与风控增值服务，降低业务风险',
-      capability: '保险,风控,理赔协同',
-      scenarios: '网络货运,航空物流,多式联运',
+      capability: '保险,风控,理赔协同,保单管理,风险评分,异常识别,履约保障',
+      scenarios: '网络货运,航空物流,多式联运,跨境物流',
       price: null,
       version: 'v1.0',
       providerName: '保险伙伴（示例）',
@@ -586,11 +662,11 @@ function seedProducts() {
     },
     {
       id: 26,
-      name: '运力撮合与结算服务（示例）',
+      name: '运力撮合与结算服务',
       category: '物流供应链增值服务',
       description: '提供运力撮合、电子合同与结算对账等增值服务，提升交易效率',
-      capability: '撮合,结算对账,电子合同',
-      scenarios: '网络货运,多式联运',
+      capability: '撮合,结算对账,电子合同,账期管理,运价发布,信用评估,对账协同',
+      scenarios: '网络货运,多式联运,干线运输,城配调度',
       price: null,
       version: 'v1.0',
       providerName: '生态伙伴C（示例）',
@@ -608,11 +684,11 @@ function seedProducts() {
     },
     {
       id: 27,
-      name: '跨境清关增值服务（示例）',
+      name: '跨境清关增值服务',
       category: '物流供应链增值服务',
       description: '面向跨境业务的清关协同、单证服务与合规咨询等增值服务',
-      capability: '清关协同,单证服务,合规咨询',
-      scenarios: '智慧口岸,航贸数字化',
+      capability: '清关协同,单证服务,合规咨询,申报协同,异常处理,通关对标,时效追踪',
+      scenarios: '智慧口岸,航贸数字化,跨境物流,多式联运',
       price: null,
       version: 'v1.0',
       providerName: '生态伙伴D（示例）',
@@ -627,8 +703,301 @@ function seedProducts() {
       status: 'ACTIVE',
       createTime: baseTime,
       updateTime: baseTime
+    },
+    {
+      id: 28,
+      name: '陆路运输',
+      category: '物流行业场景解决方案',
+      description: '面向公路/干线运输的计划、调度与在途可视化协同能力',
+      capability: '运力调度,在途可视,异常预警,签收回单,费用结算,司机管理,轨迹回放',
+      scenarios: '网络货运,多式联运,数字仓管,智慧口岸',
+      price: 58,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '场景方案',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '综合物流企业,货主企业',
+      cases: '陆路运输协同示例',
+      ownerUserId: 1,
+      popularity: 87,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 29,
+      name: '海运运输',
+      category: '物流行业场景解决方案',
+      description: '面向订舱、船期节点、箱货跟踪与异常协同的海运运输数字化能力',
+      capability: '订舱协同,船期管理,箱货跟踪,节点可视,异常处置,对外协同接口,时效预测',
+      scenarios: '智慧港航,航贸数字化,多式联运,智慧口岸',
+      price: 66,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '场景方案',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '航运公司,货代,货主企业',
+      cases: '海运运输协同示例',
+      ownerUserId: 1,
+      popularity: 88,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 30,
+      name: '航空运输',
+      category: '物流行业场景解决方案',
+      description: '面向航空货运的航班节点追踪、时效承诺与异常预警协同能力',
+      capability: '舱位协同,状态共享,节点追踪,异常预警,时效承诺,单证协同,对外协同接口',
+      scenarios: '航空物流,航贸数字化,多式联运,智慧口岸',
+      price: 72,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '场景方案',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '航司,机场,货代',
+      cases: '航空运输协同示例',
+      ownerUserId: 1,
+      popularity: 86,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 31,
+      name: '水运运输',
+      category: '物流行业场景解决方案',
+      description: '面向内河/港航水运的节点追踪、在途异常与协同处置能力',
+      capability: '节点追踪,港航协同,异常处理,在途可视,时效预测,对外协同接口,事件监测',
+      scenarios: '智慧长江,智慧港航,多式联运',
+      price: 62,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '场景方案',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '港航企业,综合物流企业',
+      cases: '水运运输协同示例',
+      ownerUserId: 1,
+      popularity: 85,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 32,
+      name: '行业态势监测大屏',
+      category: '物流行业场景解决方案',
+      description: '面向行业运行的态势监测、预警与分析大屏，支持多维钻取',
+      capability: '态势监测,指标看板,异常预警,多维钻取,事件订阅,联动处置',
+      scenarios: '智慧港航,智慧口岸,智慧长江,网络货运',
+      price: 48,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '场景方案',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '政府部门,行业机构',
+      cases: '行业态势监测示例',
+      ownerUserId: 1,
+      popularity: 77,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 33,
+      name: '数据开放接口网关',
+      category: '物流行业数字化基础平台',
+      description: '统一的对外数据服务门户与 API 网关，支持计量计费、鉴权与限流',
+      capability: 'API网关,鉴权,限流,计量计费,服务编排,SDK发布,运行监控',
+      scenarios: '智慧口岸,航贸数字化,网络货运,多式联运',
+      price: 0,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '公共平台',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '行业企业,开发者',
+      cases: '开放接口示例',
+      ownerUserId: 1,
+      popularity: 73,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 34,
+      name: '数据资产目录与血缘管理',
+      category: '数智技术产品',
+      description: '提供数据资产编目、血缘追踪、质量监控与权限治理能力',
+      capability: '数据编目,血缘追踪,质量监控,权限治理,资产评估,变更审计',
+      scenarios: '航贸数字化,智慧口岸,数字仓管,网络货运',
+      price: 18,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '技术产品',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '物流企业,科技公司',
+      cases: '数据治理示例',
+      ownerUserId: 1,
+      popularity: 71,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 35,
+      name: '多式联运协同编排引擎',
+      category: '数智技术产品',
+      description: '将铁公水空等多种运输方式编排为可执行流程，支持异常分流与成本测算',
+      capability: '流程编排,异常分流,成本测算,时效承诺,策略配置,协同调度,可视化看板',
+      scenarios: '多式联运,智慧港航,航空物流,智慧口岸',
+      price: 26,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '技术产品',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '综合物流企业,货主企业',
+      cases: '多式联运编排示例',
+      ownerUserId: 1,
+      popularity: 82,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 36,
+      name: '物流企业数据确权与授权服务',
+      category: '数据要素产品',
+      description: '面向物流企业的数据确权、授权与审计的服务化产品',
+      capability: '数据确权,授权管理,审计追踪,合规评估,脱敏加工,水印溯源',
+      scenarios: '数字仓管,网络货运,航空物流,航贸数字化',
+      price: 4,
+      version: 'v2026.1',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '数据产品',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '物流企业,科技公司',
+      cases: '确权授权示例',
+      ownerUserId: 1,
+      popularity: 69,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 37,
+      name: '生态伙伴接入与联调平台',
+      category: '物流行业数字化基础平台',
+      description: '提供伙伴接入规范、联调环境与数据对接能力，支持快速生态集成',
+      capability: '接入规范,联调环境,沙箱环境,数据对接,API管理,灰度发布,监控告警',
+      scenarios: '智慧港航,智慧口岸,网络货运,航贸数字化',
+      price: 0,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '公共平台',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '生态伙伴,科技公司',
+      cases: '生态接入示例',
+      ownerUserId: 1,
+      popularity: 68,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 38,
+      name: '企业运输费用对账助手',
+      category: '企业数智供应链产品',
+      description: '面向货主企业的运输费用对账、异常识别与结算协同助手',
+      capability: '对账协同,异常识别,账期管理,费用归集,发票匹配,结算对接',
+      scenarios: '网络货运,多式联运,航空物流,数字仓管',
+      price: 22,
+      version: 'v1.0',
+      providerName: '生态伙伴E（示例）',
+      sourceType: 'THIRD',
+      sourceName: '生态伙伴',
+      sourceUrl: 'https://example.com',
+      externalDemoUrl: 'https://example.com',
+      customers: '货主企业,物流企业',
+      cases: '对账协同示例',
+      ownerUserId: 3,
+      popularity: 57,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 39,
+      name: '行业数据产品商城',
+      category: '物流供应链增值服务',
+      description: '提供行业数据产品的选购、试用与交付服务，促进数据产业生态流通',
+      capability: '产品选购,在线试用,交付管理,计量计费,合同管理,工单服务',
+      scenarios: '智慧口岸,航贸数字化,网络货运,多式联运',
+      price: null,
+      version: 'v1.0',
+      providerName: '中国数联（示例）',
+      sourceType: 'INTERNAL',
+      sourceName: '增值服务',
+      sourceUrl: null,
+      externalDemoUrl: null,
+      customers: '行业企业,开发者',
+      cases: '数据产品商城示例',
+      ownerUserId: 1,
+      popularity: 64,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
+    },
+    {
+      id: 40,
+      name: '物流行业数据合规模板库',
+      category: '物流供应链增值服务',
+      description: '提供数据合规检查清单、模板与咨询服务，降低企业合规成本',
+      capability: '合规模板,检查清单,风险评估,审计材料,流程规范,咨询服务',
+      scenarios: '智慧口岸,航贸数字化,数字仓管,网络货运',
+      price: null,
+      version: 'v1.0',
+      providerName: '生态伙伴F（示例）',
+      sourceType: 'THIRD',
+      sourceName: '生态伙伴',
+      sourceUrl: 'https://example.com',
+      externalDemoUrl: 'https://example.com',
+      customers: '物流企业,科技公司',
+      cases: '数据合规示例',
+      ownerUserId: 3,
+      popularity: 55,
+      status: 'ACTIVE',
+      createTime: baseTime,
+      updateTime: baseTime
     }
   ]
+  for (const p of list) {
+    p.name = stripExampleMark(p.name)
+    p.capability = limitListText(p.capability, 8)
+    p.scenarios = limitListText(p.scenarios, 4)
+    if (!p.serviceType) p.serviceType = inferServiceType(p)
+  }
+  return list
 }
 
 function seedSolutions() {
@@ -641,7 +1010,7 @@ function seedSolutions() {
       targetIndustry: '物流',
       scenarios: '多式联运,智慧港航,航空物流,智慧口岸',
       architecture: 'SaaS+开放API',
-      productIds: [1, 2, 3, 4, 11, 19, 22],
+      productIds: [1, 2, 3, 4, 28, 29, 30, 31, 11, 35, 19, 22],
       estimatedDays: 60,
       priceRange: '80-200万',
       createTime: baseTime
@@ -675,7 +1044,94 @@ function seedSolutions() {
 
 function initStore() {
   const existing = readStore()
-  if (existing) return existing
+  if (existing) {
+    const list = Array.isArray(existing.products) ? existing.products : []
+    let changed = false
+    const seedArr = seedProducts()
+    const seedMap = new Map(seedArr.map(p => [Number(p?.id), p]))
+    const existIdSet = new Set(list.map(p => Number(p?.id)).filter(Number.isFinite))
+    for (const p of list) {
+      const next = stripExampleMark(p?.name)
+      if (next && p?.name !== next) {
+        p.name = next
+        changed = true
+      }
+      const seed = seedMap.get(Number(p?.id))
+      if (seed && Number(p?.ownerUserId) === Number(seed.ownerUserId)) {
+        if (seed.name && p?.name !== seed.name) {
+          p.name = seed.name
+          changed = true
+        }
+        if (seed.category && p?.category !== seed.category) {
+          p.category = seed.category
+          changed = true
+        }
+        if (seed.description && p?.description !== seed.description) {
+          p.description = seed.description
+          changed = true
+        }
+        if (seed.capability && p?.capability !== seed.capability) {
+          p.capability = seed.capability
+          changed = true
+        }
+        if (seed.scenarios && p?.scenarios !== seed.scenarios) {
+          p.scenarios = seed.scenarios
+          changed = true
+        }
+        if (seed.providerName && p?.providerName !== seed.providerName) {
+          p.providerName = seed.providerName
+          changed = true
+        }
+        if (seed.sourceType && p?.sourceType !== seed.sourceType) {
+          p.sourceType = seed.sourceType
+          changed = true
+        }
+        if (seed.sourceName && p?.sourceName !== seed.sourceName) {
+          p.sourceName = seed.sourceName
+          changed = true
+        }
+        if (seed.serviceType && p?.serviceType !== seed.serviceType) {
+          p.serviceType = seed.serviceType
+          changed = true
+        }
+      }
+      if (!p.serviceType) {
+        p.serviceType = seed?.serviceType || inferServiceType(p)
+        changed = true
+      }
+      const capLimited = limitListText(p?.capability, 8)
+      if (capLimited && p?.capability !== capLimited) {
+        p.capability = capLimited
+        changed = true
+      }
+      const scLimited = limitListText(p?.scenarios, 4)
+      if (scLimited && p?.scenarios !== scLimited) {
+        p.scenarios = scLimited
+        changed = true
+      }
+    }
+    // 追加缺失的种子产品（保证演示数据完整）
+    for (const sp of seedArr) {
+      const sid = Number(sp?.id)
+      if (!existIdSet.has(sid)) {
+        const copy = { ...sp }
+        if (!copy.serviceType) copy.serviceType = inferServiceType(copy)
+        existing.products = Array.isArray(existing.products) ? existing.products : []
+        existing.products.push(copy)
+        changed = true
+      }
+    }
+    // 去重：同名产品自动加短类别后缀
+    if (dedupeProductNames(existing.products)) {
+      changed = true
+    }
+    if (changed) {
+      existing.meta = existing.meta && typeof existing.meta === 'object' ? existing.meta : {}
+      existing.meta.updatedAt = nowISO()
+      writeStore(existing)
+    }
+    return existing
+  }
 
   const baseTime = nowISO()
   const store = {
@@ -700,6 +1156,10 @@ function initStore() {
       updatedAt: baseTime
     }
   }
+  for (const p of store.products || []) {
+    if (!p.serviceType) p.serviceType = inferServiceType(p)
+  }
+  dedupeProductNames(store.products)
   return writeStore(store)
 }
 
@@ -1243,6 +1703,7 @@ async function handleMockRequest(config) {
       id,
       name: String(body?.name || ''),
       category: String(body?.category || ''),
+      serviceType: body?.serviceType ? String(body.serviceType) : inferServiceType({ category: String(body?.category || ''), sourceType: 'PARTNER' }),
       description: String(body?.description || ''),
       capability: String(body?.capability || ''),
       scenarios: String(body?.scenarios || ''),
@@ -1278,6 +1739,7 @@ async function handleMockRequest(config) {
 
     p.name = String(body?.name ?? p.name)
     p.category = String(body?.category ?? p.category)
+    p.serviceType = body?.serviceType === undefined ? p.serviceType : String(body?.serviceType || '')
     p.description = String(body?.description ?? p.description)
     p.capability = String(body?.capability ?? p.capability)
     p.scenarios = String(body?.scenarios ?? p.scenarios)
@@ -1331,12 +1793,13 @@ async function handleMockRequest(config) {
 
     const missing = aiMissingKeys(requirements)
     const forceFinish = message.includes('结束对话') || message.includes('生成方案')
-    const needsMoreInfo = !forceFinish && missing.length > 0
+    const browseProductsIntent = /有哪些产品|看看.*产品|先给我看看.*产品/.test(message)
+    const needsMoreInfo = !forceFinish && !browseProductsIntent && missing.length > 0
     const completeness = computeAiCompleteness(requirements)
     const nextQuestion = needsMoreInfo ? aiNextQuestion(missing) : null
     const tagsArr = buildAiTags(requirements)
 
-    const recommendedProducts = needsMoreInfo ? [] : pickRecommendedProducts(products, requirements, 3)
+    let recommendedProducts = needsMoreInfo ? [] : pickRecommendedProducts(products, requirements, 3)
     const recommendedSolutions = needsMoreInfo ? [] : (store.solutions || []).slice(0, 2).map(s => ({
       id: s.id,
       name: s.name,
@@ -1344,9 +1807,18 @@ async function handleMockRequest(config) {
       estimatedDays: s.estimatedDays,
       priceRange: s.priceRange
     }))
-    const bundles = needsMoreInfo ? [] : makeAiBundles(store, requirements, recommendedProducts.length ? recommendedProducts : products.slice(0, 4))
+    let bundles = needsMoreInfo ? [] : makeAiBundles(store, requirements, recommendedProducts.length ? recommendedProducts : products.slice(0, 4))
 
-    const reply = makeAiReply(requirements, missing, recommendedProducts, bundles, needsMoreInfo)
+    let reply = makeAiReply(requirements, missing, recommendedProducts, bundles, needsMoreInfo)
+    if (!needsMoreInfo && browseProductsIntent && String(requirements?.scenario || '').includes('多式联运')) {
+      const multimodalNames = ['陆路运输', '海运运输', '航空运输', '水运运输']
+      const transportProducts = products.filter(p => multimodalNames.includes(String(p?.name || '')))
+      if (transportProducts.length) {
+        recommendedProducts = transportProducts
+        bundles = []
+        reply = `有${multimodalNames.join('、')}这几种产品，你可以考虑结合使用，形成“多式联运”整体方案。`
+      }
+    }
 
     conv.requirementsJson = JSON.stringify(requirements || {})
     conv.tags = tagsArr.join(',')
