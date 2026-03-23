@@ -99,19 +99,33 @@
                     <div class="bundle-header">
                       <div class="bundle-name">
                         {{ b.solution?.name }}
-                        <span v-if="b.score != null" class="bundle-score">{{ b.score }}分</span>
                       </div>
                       <div class="bundle-meta">
                         <span v-if="b.solution?.estimatedDays != null">⏱ {{ b.solution.estimatedDays }}天</span>
                         <span v-if="b.solution?.priceRange">💰 {{ b.solution.priceRange }}</span>
                       </div>
                     </div>
+                    <div v-if="b.score != null" class="bundle-line">
+                      <span class="bundle-line__k">评分</span>
+                      <span class="bundle-line__sep">：</span>
+                      <strong class="bundle-score-text">{{ b.score }}分</strong>
+                    </div>
+                    <div v-if="b.reasons?.length" class="bundle-reasons">
+                      <div class="bundle-reasons__title">
+                        <span class="bundle-line__k">推荐理由</span>
+                        <span class="bundle-line__sep">：</span>
+                      </div>
+                      <div class="bundle-reasons__list">
+                        <div v-for="(r, i) in b.reasons" :key="i" class="bundle-reason">
+                          <strong class="bundle-reason__k">{{ splitReason(r).k }}</strong>
+                          <span class="bundle-reason__sep">：</span>
+                          <span class="bundle-reason__v">{{ splitReason(r).v }}</span>
+                        </div>
+                      </div>
+                    </div>
                     <div v-if="b.solution?.description" class="bundle-desc">{{ b.solution.description }}</div>
                     <div v-if="b.highlights && Object.keys(b.highlights).length" class="bundle-highlights">
                       <span v-for="(v, k) in b.highlights" :key="k" class="highlight-tag">{{ k }}：{{ v }}</span>
-                    </div>
-                    <div v-if="b.reasons?.length" class="bundle-reasons">
-                      <div v-for="(r, i) in b.reasons" :key="i" class="bundle-reason">{{ r }}</div>
                     </div>
                     <div class="bundle-actions">
                       <button class="btn-bundle" type="button" @click="chooseBundle(b)">
@@ -347,6 +361,14 @@ function visibleTags(msg) {
   return Array.from(new Set(filtered))
 }
 
+function splitReason(text) {
+  const raw = String(text || '').trim()
+  if (!raw) return { k: '原因', v: '' }
+  const i = raw.indexOf('：')
+  if (i <= 0) return { k: '原因', v: raw }
+  return { k: raw.slice(0, i), v: raw.slice(i + 1).trim() }
+}
+
 function goProduct(product) {
   router.push(`/products/${product.id}`)
 }
@@ -435,7 +457,7 @@ function collectRecommendedProductIds(data) {
 .requirements-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
 .req-meta-chip { font-size: 12px; color: #722ed1; background: rgba(114, 46, 209, 0.08); border: 1px solid rgba(114, 46, 209, 0.22); padding: 4px 8px; border-radius: 999px; }
 .requirements-kv { display: flex; flex-direction: column; gap: 8px; }
-.req-line { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: start; }
+.req-line { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: start; background: #f5f7fa; border: 1px solid rgba(5, 5, 5, 0.06); padding: 8px 10px; border-radius: 10px; }
 .req-k { font-size: 12px; color: #999; }
 .req-v { font-size: 12px; color: #333; line-height: 1.6; word-break: break-word; }
 .requirements-tags { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -458,13 +480,21 @@ function collectRecommendedProductIds(data) {
 .bundle-card { background: #f9fafb; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
 .bundle-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .bundle-name { font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
-.bundle-score { font-size: 12px; font-weight: 700; color: #722ed1; background: rgba(114, 46, 209, 0.08); border: 1px solid rgba(114, 46, 209, 0.22); padding: 2px 8px; border-radius: 999px; }
 .bundle-meta { display: flex; gap: 12px; font-size: 12px; color: #999; white-space: nowrap; }
+.bundle-line { font-size: 12px; color: #666; line-height: 1.6; }
+.bundle-line__k { color: #999; }
+.bundle-line__sep { color: #999; }
+.bundle-score-text { color: #722ed1; }
 .bundle-desc { font-size: 12px; color: #666; line-height: 1.5; }
 .bundle-highlights { display: flex; flex-wrap: wrap; gap: 8px; }
 .highlight-tag { font-size: 12px; color: #0066ff; background: #e8f4ff; padding: 4px 8px; border-radius: 999px; }
 .bundle-reasons { display: flex; flex-direction: column; gap: 6px; }
-.bundle-reason { font-size: 12px; color: #666; line-height: 1.6; }
+.bundle-reasons__title { font-size: 12px; color: #666; line-height: 1.6; }
+.bundle-reasons__list { display: flex; flex-direction: column; gap: 6px; background: #f5f7fa; border: 1px solid rgba(5, 5, 5, 0.06); padding: 10px; border-radius: 10px; }
+.bundle-reason { font-size: 12px; line-height: 1.6; display: grid; grid-template-columns: auto 8px 1fr; gap: 0; align-items: start; }
+.bundle-reason__k { color: #333; white-space: nowrap; }
+.bundle-reason__sep { color: #999; }
+.bundle-reason__v { color: #666; word-break: break-word; }
 .bundle-actions { display: flex; justify-content: flex-end; }
 .btn-bundle { padding: 8px 14px; border: 1px solid #0066ff; background: #fff; color: #0066ff; border-radius: 8px; cursor: pointer; font-size: 12px; }
 .btn-bundle:hover { background: #0066ff; color: #fff; }
