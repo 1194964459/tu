@@ -311,7 +311,7 @@ function requirementLabel(key) {
   const map = {
     industry: '行业',
     scenario: '场景',
-    capability: '能力点',
+    capability: '功能点',
     budget: '预算',
     scale: '规模',
     version: '版本',

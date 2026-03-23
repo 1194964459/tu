@@ -142,7 +142,7 @@
             <span class="row-granularity">{{ granularityLabel(granularityOfProduct(product)) }}</span>
           </div>
           <div class="row-meta">
-            <span v-if="firstCapability(product)" class="row-chip">能力：{{ firstCapability(product) }}</span>
+            <span v-if="firstCapability(product)" class="row-chip">功能：{{ firstCapability(product) }}</span>
             <span v-if="firstScenario(product)" class="row-chip">场景：{{ firstScenario(product) }}</span>
           </div>
         </div>

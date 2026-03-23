@@ -177,7 +177,7 @@
       </a-tab-pane>
       <a-tab-pane key="trials" tab="（内部）产品试用管理">
       <div class="toolbar">
-        <input v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/能力/场景" />
+        <input v-model="keyword" class="search" type="text" placeholder="搜索用户/产品/方案/功能/场景" />
         <button class="btn-refresh" type="button" :disabled="loading" @click="loadTrials">
           {{ loading ? '加载中...' : '查找' }}
         </button>
@@ -254,7 +254,7 @@
       <a-tab-pane key="ecosystem" tab="（第三方）生态产品管理">
     <div class="eco">
       <div class="toolbar">
-        <input v-model="ecoKeyword" class="search" type="text" placeholder="搜索生态产品/供应商/能力/场景/客户/案例" />
+        <input v-model="ecoKeyword" class="search" type="text" placeholder="搜索生态产品/供应商/功能/场景/客户/案例" />
         <div class="inline">
           <span class="inline-label">提交方ID</span>
           <input v-model="ownerUserId" class="input-sm" type="number" min="1" />
@@ -432,7 +432,7 @@
               <div class="value">{{ detail.solution?.name || '-' }}</div>
             </div>
             <div class="detail-item full">
-              <div class="label">能力</div>
+              <div class="label">功能</div>
               <div class="value">{{ detail.product?.capability || '-' }}</div>
             </div>
             <div class="detail-item full">
@@ -521,7 +521,7 @@
               <div class="value">{{ productDetail?.description || '-' }}</div>
             </div>
             <div class="detail-item full">
-              <div class="label">能力</div>
+              <div class="label">功能</div>
               <div class="value">{{ productDetail?.capability || '-' }}</div>
             </div>
             <div class="detail-item full">
@@ -603,7 +603,7 @@
 
         <a-row :gutter="12">
           <a-col :span="12">
-            <a-form-item label="能力点" name="capability">
+            <a-form-item label="功能点" name="capability">
               <a-textarea v-model:value="submitForm.capability" :rows="3" placeholder="用逗号分隔，如：路线优化,车辆调度..." />
             </a-form-item>
           </a-col>
@@ -782,7 +782,7 @@ const trialColumns = [
     width: 220
   },
   {
-    title: '能力',
+    title: '功能',
     key: 'capability',
   },
   {
@@ -998,7 +998,7 @@ const ecoPendingColumns = [
     width: 220
   },
   {
-    title: '能力',
+    title: '功能',
     key: 'capability',
     width: 220,
     ellipsis: true
@@ -1447,7 +1447,7 @@ function summarizeRequirements(requirementsJson) {
     const parts = []
     if (obj.industry) parts.push(`行业:${obj.industry}`)
     if (obj.scenario) parts.push(`场景:${obj.scenario}`)
-    if (obj.capability) parts.push(`能力:${obj.capability}`)
+    if (obj.capability) parts.push(`功能:${obj.capability}`)
     if (obj.budget) parts.push(`预算:${obj.budget}`)
     if (obj.version) parts.push(`版本:${obj.version}`)
     if (!parts.length) return '-'

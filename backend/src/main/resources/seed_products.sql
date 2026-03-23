@@ -1,12 +1,12 @@
 DELETE p
 FROM products p
-JOIN products p2 ON p2.name = REPLACE(p.name, '（示例）', '')
-WHERE p.name LIKE '%（示例）';
+JOIN products p2 ON p2.name = REPLACE(p.name, '', '')
+WHERE p.name LIKE '%';
 
 UPDATE products p
-LEFT JOIN products p2 ON p2.name = REPLACE(p.name, '（示例）', '')
-SET p.name = REPLACE(p.name, '（示例）', '')
-WHERE p.name LIKE '%（示例）'
+LEFT JOIN products p2 ON p2.name = REPLACE(p.name, '', '')
+SET p.name = REPLACE(p.name, '', '')
+WHERE p.name LIKE '%'
   AND p2.id IS NULL;
 
 INSERT INTO products (name, category, description, capability, scenarios, price, version, provider_name, source_type, source_name, popularity, status, create_time, update_time)

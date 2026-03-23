@@ -10,7 +10,7 @@
     <p v-if="product.description" class="product-desc">{{ product.description }}</p>
     <div v-if="capabilityText || scenarioText" class="product-tags">
       <div v-if="capabilityText" class="tag-row">
-        <span class="tag-label">能力：</span>
+        <span class="tag-label">功能：</span>
         <span class="tag-value">{{ capabilityText }}</span>
       </div>
       <div v-if="scenarioText" class="tag-row">

@@ -9,7 +9,7 @@
         <p class="product-desc">{{ product.description }}</p>
         
         <div class="detail-section">
-          <h3>核心能力</h3>
+          <h3>核心功能</h3>
           <div class="capability-list">
             <span v-for="cap in product.capability?.split(',')" :key="cap" class="capability-tag">{{ cap }}</span>
           </div>

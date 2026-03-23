@@ -229,7 +229,7 @@ public class AIService {
             for (String part : capability.split("[,，/\\s]+")) {
                 String t = part == null ? "" : part.trim();
                 if (!t.isBlank())
-                    tags.add("能力:" + t);
+                    tags.add("功能:" + t);
                 if (tags.size() >= 12)
                     break;
             }
@@ -385,7 +385,7 @@ public class AIService {
         if (missing.contains("scenario"))
             return "您主要想解决哪个场景？例如：仓储/运输/订单/供应链协同";
         if (missing.contains("capability"))
-            return "最关注的能力点有哪些？例如：可视化看板、路线优化、库存预测、异常预警";
+            return "最关注的功能点有哪些？例如：可视化看板、路线优化、库存预测、异常预警";
         if (missing.contains("budget"))
             return "预算范围大概多少？例如：50万以内 / 50-150万";
         return null;
@@ -399,14 +399,14 @@ public class AIService {
             boolean needsMoreInfo,
             boolean wantsProductList) {
         if (requirements.isEmpty()) {
-            return "您好！我是您的 AI 顾问。\n\n为了推荐更贴合的产品/方案，我需要了解：\n1) 行业\n2) 场景\n3) 关注能力点\n4) 预算范围\n\n您可以这样说：我是物流企业，需要仓储管理，关注库存预测，预算 50 万以内。";
+            return "您好！我是您的 AI 顾问。\n\n为了推荐更贴合的产品/方案，我需要了解：\n1) 行业\n2) 场景\n3) 关注功能点\n4) 预算范围\n\n您可以这样说：我是物流企业，需要仓储管理，关注库存预测，预算 50 万以内。";
         }
 
         StringBuilder sb = new StringBuilder();
         sb.append("收到，我先把需求要点梳理一下：\n");
         sb.append("- 行业：").append(requirements.getOrDefault("industry", "未填写")).append("\n");
         sb.append("- 场景：").append(requirements.getOrDefault("scenario", "未填写")).append("\n");
-        sb.append("- 能力点：").append(requirements.getOrDefault("capability", "未填写")).append("\n");
+        sb.append("- 功能点：").append(requirements.getOrDefault("capability", "未填写")).append("\n");
         sb.append("- 预算：").append(requirements.getOrDefault("budget", "未填写")).append("\n");
         if (requirements.containsKey("version")) {
             sb.append("- 版本偏好：").append(requirements.get("version")).append("\n");
@@ -429,7 +429,7 @@ public class AIService {
             if (missing.contains("scenario"))
                 need.add("场景");
             if (missing.contains("capability"))
-                need.add("能力点");
+                need.add("功能点");
             if (missing.contains("budget"))
                 need.add("预算");
             sb.append(String.join(" / ", need));
