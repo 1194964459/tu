@@ -43,71 +43,73 @@
     </div>
 
     <div class="ai-fab">
-      <div v-if="aiChatOpen && aiChatCollapsed" class="ai-mini" role="dialog" aria-label="AI 顾问">
-        <div class="ai-mini__header">
-          <div class="ai-mini__title">
-            <span class="ai-mini__title-icon" aria-hidden="true">
-              <img class="ai-robot" :src="robotIcon" alt="" />
-            </span>
-            <div class="ai-mini__title-text">
-              <div class="ai-mini__title-main">AI智能顾问</div>
-              <div class="ai-mini__title-sub">24 小时在线服务</div>
+      <template v-if="aiChatOpen">
+        <div v-show="aiChatCollapsed" class="ai-mini" role="dialog" aria-label="AI 顾问">
+          <div class="ai-mini__header">
+            <div class="ai-mini__title">
+              <span class="ai-mini__title-icon" aria-hidden="true">
+                <img class="ai-robot" :src="robotIcon" alt="" />
+              </span>
+              <div class="ai-mini__title-text">
+                <div class="ai-mini__title-main">AI智能顾问</div>
+                <div class="ai-mini__title-sub">24 小时在线服务</div>
+              </div>
+            </div>
+            <div class="ai-mini__actions">
+              <button class="ai-icon-btn" type="button" aria-label="展开" @click="expandAiChat">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M15 3h6v6" />
+                  <path d="M9 21H3v-6" />
+                  <path d="M21 3l-7 7" />
+                  <path d="M3 21l7-7" />
+                </svg>
+              </button>
+              <button class="ai-icon-btn" type="button" aria-label="关闭" @click="closeAiChat">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6 6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
-          <div class="ai-mini__actions">
-            <button class="ai-icon-btn" type="button" aria-label="展开" @click="expandAiChat">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M15 3h6v6" />
-                <path d="M9 21H3v-6" />
-                <path d="M21 3l-7 7" />
-                <path d="M3 21l7-7" />
-              </svg>
-            </button>
-            <button class="ai-icon-btn" type="button" aria-label="关闭" @click="closeAiChat">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6 6 18" />
-                <path d="M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
         </div>
-      </div>
 
-      <div v-else-if="aiChatOpen" class="ai-panel" role="dialog" aria-label="AI 顾问">
-        <div class="ai-panel__header">
-          <div class="ai-panel__title">
-            <span class="ai-panel__title-icon" aria-hidden="true">
-              <img class="ai-robot" :src="robotIcon" alt="" />
-            </span>
-            <span>AI 智能顾问</span>
+        <div v-show="!aiChatCollapsed" class="ai-panel" role="dialog" aria-label="AI 顾问">
+          <div class="ai-panel__header">
+            <div class="ai-panel__title">
+              <span class="ai-panel__title-icon" aria-hidden="true">
+                <img class="ai-robot" :src="robotIcon" alt="" />
+              </span>
+              <span>AI 智能顾问</span>
+            </div>
+            <div class="ai-panel__actions">
+              <button class="ai-icon-btn" type="button" aria-label="新对话" @click="resetAiChat">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+              </button>
+              <button class="ai-icon-btn" type="button" aria-label="收起" @click="collapseAiChat">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 3H3v6" />
+                  <path d="M15 21h6v-6" />
+                  <path d="M3 3l7 7" />
+                  <path d="M21 21l-7-7" />
+                </svg>
+              </button>
+              <button class="ai-icon-btn danger" type="button" aria-label="关闭" @click="closeAiChat">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6 6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <div class="ai-panel__actions">
-            <button class="ai-icon-btn" type="button" aria-label="新对话" @click="resetAiChat">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-                <path d="M21 3v6h-6" />
-              </svg>
-            </button>
-            <button class="ai-icon-btn" type="button" aria-label="收起" @click="collapseAiChat">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 3H3v6" />
-                <path d="M15 21h6v-6" />
-                <path d="M3 3l7 7" />
-                <path d="M21 21l-7-7" />
-              </svg>
-            </button>
-            <button class="ai-icon-btn danger" type="button" aria-label="关闭" @click="closeAiChat">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 6 6 18" />
-                <path d="M6 6l12 12" />
-              </svg>
-            </button>
+          <div class="ai-panel__body">
+            <AIChat ref="aiChatRef" :embedded="true" :showSidebar="false" />
           </div>
         </div>
-        <div class="ai-panel__body">
-          <AIChat ref="aiChatRef" :embedded="true" :showSidebar="false" />
-        </div>
-      </div>
+      </template>
 
       <div v-if="aiGuideVisible && !aiChatOpen" class="ai-guide" role="note" aria-label="AI 助手引导">
         <div class="ai-guide__header">

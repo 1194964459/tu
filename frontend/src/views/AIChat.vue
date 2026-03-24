@@ -78,7 +78,7 @@
                 </div>
               </div> -->
               
-              <div v-if="msg.recommendedSolutions?.length" class="recommend-section">
+              <!-- <div v-if="msg.recommendedSolutions?.length" class="recommend-section">
                 <h4>推荐方案</h4>
                 <div class="solution-list">
                   <div v-for="s in msg.recommendedSolutions" :key="s.id" class="solution-item">
@@ -90,10 +90,10 @@
                     </div>
                   </div>
                 </div>
-              </div>
+              </div> -->
 
               <div v-if="msg.bundles?.length" class="recommend-section">
-                <h4>可对比方案（选择后可直接试用）</h4>
+                <h4>推荐方案</h4>
                 <div class="bundle-grid">
                   <div v-for="b in msg.bundles" :key="b.solution?.id" class="bundle-card">
                     <div class="bundle-header">

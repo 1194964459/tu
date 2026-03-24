@@ -78,7 +78,7 @@
           <div class="trial-info">
             <div class="trial-item">
               <span class="label">环境地址</span>
-              <a :href="trial.environmentUrl" target="_blank" class="trial-link">{{ trial.environmentUrl }}</a>
+              <a :href="trial.environmentUrl" target="_blank" rel="noopener noreferrer" class="trial-link">{{ trial.environmentUrl }}</a>
             </div>
             <div class="trial-item">
               <span class="label">试用时间</span>
@@ -358,9 +358,38 @@ async function loadData() {
         }
       }
     }
+    warmupExternalOrigins(trials.value)
   } catch (e) {
     console.error(e)
   }
+}
+
+function warmupExternalOrigins(list) {
+  const urls = (list || []).map(t => t?.environmentUrl).filter(Boolean)
+  const origins = new Set()
+  for (const u of urls) {
+    try {
+      const origin = new URL(String(u), window.location.origin).origin
+      origins.add(origin)
+    } catch (e) {}
+  }
+  for (const origin of origins) {
+    ensureLinkOnce('dns-prefetch', origin)
+    ensureLinkOnce('preconnect', origin, true)
+  }
+}
+
+function ensureLinkOnce(rel, href, crossOrigin) {
+  if (typeof document === 'undefined') return
+  const key = `${rel}:${href}`
+  const all = document.head ? Array.from(document.head.querySelectorAll('link[data-key]')) : []
+  if (all.some(n => n?.getAttribute && n.getAttribute('data-key') === key)) return
+  const link = document.createElement('link')
+  link.rel = rel
+  link.href = href
+  link.setAttribute('data-key', key)
+  if (crossOrigin) link.crossOrigin = ''
+  document.head.appendChild(link)
 }
 
 function onPrefsChanged() {
@@ -415,7 +444,7 @@ async function createTrial() {
 }
 
 function openEnvironment(trial) {
-  window.open(trial.environmentUrl, '_blank')
+  window.open(trial.environmentUrl, '_blank', 'noopener,noreferrer')
 }
 
 function showFeedback(trial) {

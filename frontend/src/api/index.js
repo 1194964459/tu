@@ -1250,10 +1250,10 @@ function searchProducts(products, keyword) {
 }
 
 function buildEnvironmentUrl(product, trialId) {
-  const url = product?.externalDemoUrl
-  if (url) return String(url)
-  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : ''
-  return `${origin}/#/products/${product?.id || ''}?trial=${trialId}`
+  const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TRIAL_ENV_BASE_URL)
+    ? String(import.meta.env.VITE_TRIAL_ENV_BASE_URL)
+    : 'http://dsly.172.16.50.163.nip.io/'
+  return base
 }
 
 function computeTrialStats(store) {
@@ -1797,6 +1797,7 @@ async function handleMockRequest(config) {
     const id = Number(trialDetailMatch[1])
     const trial = (store.trials || []).find(t => Number(t?.id) === id) || null
     if (!trial) return buildAxiosResponse(config, 404, { error: '试用不存在' })
+    trial.environmentUrl = buildEnvironmentUrl(null, id)
     const feedback = (store.feedbacks || []).find(f => Number(f?.trialId) === id) || null
     const detail = { trial, feedback }
     return buildAxiosResponse(config, 200, buildApiResult(detail))
@@ -1805,7 +1806,9 @@ async function handleMockRequest(config) {
   const userTrialsMatch = path.match(/^\/trials\/user\/(\d+)$/)
   if (method === 'get' && userTrialsMatch) {
     const userId = Number(userTrialsMatch[1])
-    const list = (store.trials || []).filter(t => Number(t?.userId) === userId)
+    const list = (store.trials || [])
+      .filter(t => Number(t?.userId) === userId)
+      .map(t => ({ ...t, environmentUrl: buildEnvironmentUrl(null, t?.id) }))
     return buildAxiosResponse(config, 200, buildApiResult(list, { total: list.length }))
   }
 

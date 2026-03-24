@@ -109,8 +109,11 @@ public class TrialService {
     }
 
     private String generateEnvironmentUrl(Long productId) {
-        return String.format("https://demo.example.com/environment/%d/%s", 
-                productId, UUID.randomUUID().toString().substring(0, 8));
+        String base = System.getenv("DEMO_TRIAL_ENV_BASE_URL");
+        if (base == null || base.trim().isEmpty()) {
+            base = "http://dsly.172.16.50.163.nip.io/";
+        }
+        return base.trim();
     }
 
     public Map<String, Object> getTrialStats() {
