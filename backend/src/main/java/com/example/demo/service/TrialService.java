@@ -73,6 +73,9 @@ public class TrialService {
     @Transactional
     public TrialFeedback submitFeedback(Long trialId, Long userId, Integer rating, 
                                         String feedback, String issues, String purchaseIntent) {
+        if (rating == null || rating < 1 || rating > 10) {
+            throw new IllegalArgumentException("rating must be between 1 and 10");
+        }
         TrialFeedback fb = new TrialFeedback();
         fb.setTrialId(trialId);
         fb.setUserId(userId);

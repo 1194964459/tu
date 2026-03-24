@@ -559,7 +559,7 @@
             <div v-if="detail.feedback" class="detail-item full">
               <div class="label">反馈/意向</div>
               <div class="value pre">
-                <div>评分：{{ detail.feedback.rating ?? '-' }}</div>
+                <div>评分：{{ detail.feedback.rating != null ? `${detail.feedback.rating}/10` : '-' }}</div>
                 <div>意向：{{ detail.feedback.purchaseIntent || '-' }}</div>
                 <div>状态：{{ detail.feedback.status || '-' }}</div>
                 <div>反馈：{{ detail.feedback.feedback || '-' }}</div>
@@ -612,7 +612,7 @@
             <div v-if="handle.feedback" class="detail-item full">
               <div class="label">用户反馈</div>
               <div class="value pre">
-                <div>评分：{{ handle.feedback.rating ?? '-' }}</div>
+                <div>评分：{{ handle.feedback.rating != null ? `${handle.feedback.rating}/10` : '-' }}</div>
                 <div>意向：{{ handle.feedback.purchaseIntent || '-' }}</div>
                 <div>状态：{{ handle.feedback.status || '-' }}</div>
                 <div>反馈：{{ handle.feedback.feedback || '-' }}</div>

@@ -108,7 +108,7 @@
                     <div v-if="b.score != null" class="bundle-line">
                       <span class="bundle-line__k">评分</span>
                       <span class="bundle-line__sep">：</span>
-                      <strong class="bundle-score-text">{{ b.score }}分</strong>
+                      <strong class="bundle-score-text">{{ formatScore10(b.score) }}分</strong>
                     </div>
                     <div v-if="b.reasons?.length" class="bundle-reasons">
                       <div class="bundle-reasons__title">
@@ -359,6 +359,13 @@ function visibleTags(msg) {
   const hiddenPrefixes = ['行业:', '场景:', '预算:', '版本:', '规模:', '功能:']
   const filtered = tags.filter(t => !hiddenPrefixes.some(p => t.startsWith(p)))
   return Array.from(new Set(filtered))
+}
+
+function formatScore10(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '-'
+  const ten = Math.round(n / 10)
+  return Math.max(0, Math.min(10, ten))
 }
 
 function splitReason(text) {

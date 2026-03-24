@@ -1781,7 +1781,7 @@ async function handleMockRequest(config) {
     if (!trial) return buildAxiosResponse(config, 404, { error: '试用不存在' })
     const userId = Number(body?.userId)
     const rating = Number(body?.rating)
-    if (!Number.isFinite(userId) || !Number.isFinite(rating) || rating <= 0) {
+    if (!Number.isFinite(userId) || !Number.isFinite(rating) || rating <= 0 || rating > 10) {
       return buildAxiosResponse(config, 400, { error: '参数不正确' })
     }
 

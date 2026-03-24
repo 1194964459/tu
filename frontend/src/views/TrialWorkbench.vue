@@ -192,7 +192,13 @@
           <div class="form-group">
             <label>整体评分</label>
             <div class="rating-stars">
-              <span v-for="i in 5" :key="i" class="star" :class="{ active: i <= feedbackForm.rating }" @click="feedbackForm.rating = i">★</span>
+              <div v-for="i in 5" :key="i" class="star-box">
+                <span class="star star--bg">★</span>
+                <span class="star star--fg" :style="{ width: `${starFill(i)}%` }">★</span>
+                <button class="star-hit star-hit--left" type="button" @click="setRating(i * 2 - 1)"></button>
+                <button class="star-hit star-hit--right" type="button" @click="setRating(i * 2)"></button>
+              </div>
+              <span class="rating-value">{{ feedbackForm.rating ? `${feedbackForm.rating}/10` : '' }}</span>
             </div>
           </div>
           
@@ -453,7 +459,12 @@ async function extendTrial(trial) {
 
 function viewFeedback(trial) {
   const fb = trial.feedback
-  alert(`评分: ${'★'.repeat(fb.rating)}\n反馈: ${fb.feedback || '-'}\n问题: ${fb.issues || '-'}\n意向: ${purchaseIntentText(fb.purchaseIntent)}\n状态: ${feedbackStatusText(fb.status)}\n处理回复: ${fb.providerReply || '-'}`)
+  const rating = Math.max(0, Math.min(10, Number(fb?.rating) || 0))
+  const full = Math.floor(rating / 2)
+  const half = rating % 2 === 1
+  const empty = Math.max(0, 5 - full - (half ? 1 : 0))
+  const stars = `${'★'.repeat(full)}${half ? '½' : ''}${'☆'.repeat(empty)}`
+  alert(`评分: ${rating}/10（${(rating / 2).toFixed(1)}/5） ${stars}\n反馈: ${fb.feedback || '-'}\n问题: ${fb.issues || '-'}\n意向: ${purchaseIntentText(fb.purchaseIntent)}\n状态: ${feedbackStatusText(fb.status)}\n处理回复: ${fb.providerReply || '-'}`)
 }
 
 async function saveFeedbackUpdate(trial) {
@@ -493,6 +504,21 @@ function purchaseIntentText(v) {
     PURCHASED: '已购买'
   }
   return map[v] || v || '-'
+}
+
+function setRating(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return
+  feedbackForm.rating = Math.max(1, Math.min(10, Math.round(n)))
+}
+
+function starFill(i) {
+  const idx = Number(i)
+  const rating = Number(feedbackForm.rating) || 0
+  const diff = rating - (idx - 1) * 2
+  if (diff >= 2) return 100
+  if (diff === 1) return 50
+  return 0
 }
 
 function escapeHtml(input) {
@@ -582,7 +608,7 @@ function downloadTrialReport(trial) {
   <div class="card">
     <h2>反馈与评分</h2>
     <div class="grid">
-      <div class="k">评分</div><div class="v">${escapeHtml(fb?.rating != null ? `${fb.rating}/5` : '-')}</div>
+      <div class="k">评分</div><div class="v">${escapeHtml(fb?.rating != null ? `${fb.rating}/10` : '-')}</div>
       <div class="k">购买意向</div><div class="v">${escapeHtml(purchaseIntentText(fb?.purchaseIntent))}</div>
       <div class="k">使用感受</div><div class="v">${fb?.feedback ? `<pre>${escapeHtml(fb.feedback)}</pre>` : `<span class="muted">暂无</span>`}</div>
     </div>
@@ -702,8 +728,14 @@ function downloadTrialReport(trial) {
 .form-info li { margin-bottom: 4px; }
 
 .rating-stars { display: flex; gap: 8px; }
-.star { font-size: 28px; color: #ddd; cursor: pointer; transition: color 0.2s; }
-.star.active { color: #ffc107; }
+.star-box { width: 28px; height: 28px; position: relative; }
+.star { font-size: 28px; line-height: 28px; display: inline-block; user-select: none; }
+.star--bg { color: #ddd; }
+.star--fg { color: #ffc107; position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; pointer-events: none; }
+.star-hit { position: absolute; top: 0; bottom: 0; background: transparent; border: none; cursor: pointer; padding: 0; }
+.star-hit--left { left: 0; width: 50%; }
+.star-hit--right { right: 0; width: 50%; }
+.rating-value { font-size: 14px; color: #999; margin-left: 8px; align-self: center; }
 
 .intent-options { display: flex; gap: 12px; flex-wrap: wrap; }
 .intent-option { padding: 8px 16px; border: 1px solid #e0e0e0; border-radius: 20px; cursor: pointer; font-size: 14px; }

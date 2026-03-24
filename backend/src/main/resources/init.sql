@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS trial_feedback (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     trial_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
-    rating INT COMMENT '1-5',
+    rating INT COMMENT '1-10',
     feedback TEXT,
     issues TEXT,
     purchase_intent VARCHAR(20) COMMENT 'NONE/INTERESTED/PENDING/PURCHASED',
