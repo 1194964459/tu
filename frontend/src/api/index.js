@@ -1653,7 +1653,42 @@ function makeAiBundles(solutions, requirements, products) {
     }
   })
 
-  return bundles.slice().sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0))
+  const sorted = bundles.slice().sort((a, b) => Number(b?.score || 0) - Number(a?.score || 0))
+  ensureDistinctBundleScore10(sorted)
+  return sorted
+}
+
+function ensureDistinctBundleScore10(sortedBundles) {
+  const list = Array.isArray(sortedBundles) ? sortedBundles : []
+  const used = new Set()
+  const to10 = (v) => {
+    const n = Number(v)
+    if (!Number.isFinite(n)) return 0
+    const ten = Math.round(n / 10)
+    return Math.max(0, Math.min(10, ten))
+  }
+  const clamp = (n) => Math.max(0, Math.min(100, Math.round(n)))
+
+  for (const b of list) {
+    const base = Number(b?.score)
+    const base10 = to10(base)
+    if (!used.has(base10)) {
+      used.add(base10)
+      continue
+    }
+
+    let next = clamp(base)
+    for (let step = 1; step <= 10; step += 1) {
+      const candidate = clamp(base - step * 10)
+      const c10 = to10(candidate)
+      if (!used.has(c10)) {
+        next = candidate
+        break
+      }
+    }
+    b.score = next
+    used.add(to10(next))
+  }
 }
 
 function makeAiReply(requirements, missing, recommendedProducts, bundles, needsMoreInfo) {
