@@ -172,6 +172,8 @@ function onSessionChanged() {
 onMounted(async () => {
   initPortal()
   window.addEventListener('demo-session-changed', onSessionChanged)
+  window.addEventListener('demo-product-prefs-changed', onSessionChanged)
+  window.addEventListener('demo-ai-conversation-updated', onSessionChanged)
   try {
     const [popularRes, listRes, catsRes, statsRes] = await Promise.all([
       productAPI.popular(12),
@@ -198,6 +200,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('demo-session-changed', onSessionChanged)
+  window.removeEventListener('demo-product-prefs-changed', onSessionChanged)
+  window.removeEventListener('demo-ai-conversation-updated', onSessionChanged)
 })
 function openProduct(product) {
   if (!product?.id) return
